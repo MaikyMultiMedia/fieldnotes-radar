@@ -8,7 +8,7 @@ A clean public edition of a read-only crypto research dashboard. Two views: **La
 
 The hosted site is a **clearly labeled synthetic demonstration**, not a live token feed. Public redistribution permission for the original feed has not been established. It has no holdings, wallet addresses, personal screenshots, credentials, transaction history, trades or account connection. No fake login is present. Anyone can view; GitHub accounts are used to contribute to the source.
 
-The repository includes the tested `momentum.py` detection/paper-calculation engine so collaborators can continue the real implementation. It is not connected to the demo frontend. It supports same-mint/pool cap-change signals (up 50% or down 30%, at least $2,000, within 10 seconds), a separate evidence-gated full-holder rule, cooldowns, and next-observation $5 paper valuation. Neither engine nor frontend sends transactions.
+The repository includes the tested `momentum.py` detection/paper-calculation engine so collaborators can continue the real implementation. It is not connected to the demo frontend. It supports same-mint/pool cap-change signals (up 50% or down 30%, at least $2,000, within 5 minutes), a separate evidence-gated full-holder rule, cooldowns, and next-observation $5 paper valuation. Neither engine nor frontend sends transactions.
 
 ## Run locally
 
@@ -50,3 +50,5 @@ node --check site/app.js
 GitHub Pages serves the static preview; no server, wallet, paid data subscription or AI API is provisioned. The preview makes no external data/API calls. GitHub Pages does not run Python or continuous collectors. A future live edition requires authorized source redistribution, an always-on backend, storage, caching and an explicit operating budget. Do not publish the original personal server or database.
 
 No open-source license grant has been selected yet. Repository collaborators may work on this project; choose a license before offering broader redistribution rights.
+
+The red-alert demo button shows a synthetic five-minute cap/holder change. Live personal alerts poll every five seconds; the public preview does not collect live data. Holder-only detection requires comparable complete counts, at least 10 additional owners and a doubling within five minutes. Sampled top-holder lists cannot trigger it.

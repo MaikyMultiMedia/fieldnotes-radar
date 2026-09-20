@@ -2,7 +2,39 @@
   "mode": "demo",
   "status": "Live shared feed awaits redistribution authorization",
   "events": [
-    {"id":"demo-rise","name":"Example Grove","symbol":"DEMO-A","direction":"rise","cap_before":3500,"cap_after":10200,"elapsed_seconds":8,"holders":null,"liquidity":null,"first_seen":"Illustrative T+0 seconds","checked":"Illustrative T+8 seconds","volume":null,"contract":null,"note":"Synthetic example: a fast increase qualifies for research, but does not establish a safe exit."},
-    {"id":"demo-fall","name":"Example Harbor","symbol":"DEMO-B","direction":"fall","cap_before":18000,"cap_after":9500,"elapsed_seconds":7,"holders":null,"liquidity":null,"first_seen":"Illustrative T+0 seconds","checked":"Illustrative T+7 seconds","volume":null,"contract":null,"note":"Synthetic example: a rapid fall is an observation, not an instruction to buy the dip."}
+    {
+      "id": "demo-rise",
+      "name": "Example Grove",
+      "symbol": "DEMO-A",
+      "direction": "rise",
+      "cap_before": 3000,
+      "cap_after": 10000,
+      "elapsed_seconds": 300,
+      "holders": null,
+      "liquidity": null,
+      "first_seen": "Synthetic 6:00:00 PM",
+      "checked": "Synthetic 6:05:00 PM",
+      "volume": null,
+      "contract": null,
+      "note": "Synthetic example: a fast increase qualifies for research, but does not establish a safe exit.",
+      "holders_before": 2,
+      "holders_after": 20
+    },
+    {
+      "id": "demo-fall",
+      "name": "Example Harbor",
+      "symbol": "DEMO-B",
+      "direction": "fall",
+      "cap_before": 18000,
+      "cap_after": 9500,
+      "elapsed_seconds": 7,
+      "holders": null,
+      "liquidity": null,
+      "first_seen": "Illustrative T+0 seconds",
+      "checked": "Illustrative T+7 seconds",
+      "volume": null,
+      "contract": null,
+      "note": "Synthetic example: a rapid fall is an observation, not an instruction to buy the dip."
+    }
   ]
 }
