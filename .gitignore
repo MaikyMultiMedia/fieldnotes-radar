@@ -1,0 +1,10 @@
+data/
+__pycache__/
+.env
+.env.*
+*.sqlite*
+*.db
+*.log
+.venv/
+artifacts/
+public-edition/
