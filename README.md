@@ -1,5 +1,7 @@
 # Fieldnotes · shared launch research
 
+**Private workspace:** The Sites-hosted edition now adds the two invited accounts, shared saved token research, and automatic checked GitHub interface updates. See [WORKSPACE.md](WORKSPACE.md) for setup, verification and integration limits. The public demo below remains separate. Neither edition places trades, and the market feed remains synthetic.
+
 A clean public edition of a read-only crypto research dashboard. Two views: **Launch Radar** and **Research Desk**. Designed for Windows, mobile browsers and collaborative development.
 
 **Public site: https://maikymultimedia.github.io/fieldnotes-radar/**
