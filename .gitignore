@@ -8,3 +8,10 @@ __pycache__/
 .venv/
 artifacts/
 public-edition/
+node_modules/
+dist/
+.sites-runtime/
+.local/
+*.zip
+site/workspace-release.json
+!.env.example
