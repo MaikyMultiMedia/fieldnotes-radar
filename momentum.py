@@ -84,7 +84,7 @@ def view(con,now):
     for s in samples:latest.setdefault(s['contract'],s)
     tracking=[{'contract':s['contract'],'symbol':s.get('symbol','Unknown'),'market_cap':s['checks']['market']['market_cap'],'observed_at':s['observed_at'],'first_seen':s.get('launch_observed_at'),'market':s['checks']['market']} for s in latest.values() if now-ts(s['observed_at'])<=15 and positive(s['checks'].get('market',{}).get('market_cap'))]
     return {'alerts':[{**a,'paper':({'status':'Observation only; no paper entry','outlay':None} if a.get('direction') in ('fall','holders') else paper_update(a,samples,now))} for a in alerts],
-            'tracking':tracking,'status':f'Market-cap alerts active · {len(tracking)} tokens with recent cap observations',
+            'tracking':tracking,'status':f'{len(tracking)} tokens with fresh quotes; last observation: {samples[0]["observed_at"] if samples else "none"}',
             'rule':'Within 5 minutes, same mint/pool: rise ≥50% or fall ≥30%, with at least $2,000 absolute change. Market polling targets every 5 seconds; provider updates may lag.',
             'coverage':'Complete-holder growth alerts need a complete-count provider; current holder samples cannot trigger them. The combined $3,500→$10,000 and 2→15-holder rule remains separate and awaits complete holder data. The bounded collector does not monitor every launch; unindexed tokens lack quotes.'}
 
