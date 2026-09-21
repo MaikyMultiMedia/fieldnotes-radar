@@ -18,7 +18,7 @@ The Sites Worker checks that release pointer at most once per minute per warm in
 
 **Automatic scope:** changes to `web/index.html`, `web/app.js`, `web/style.css`, `web/favicon.svg`, `web/charts.js`, and `web/NOTICE.txt`. Backend code, credentials, schemas, market adapters and the Python engine require a new Sites deployment. This is not unrestricted full-stack CI/CD. Do not claim that arbitrary GitHub changes are automatically deployed. Interface updates require the GitHub repository to remain publicly readable and GitHub Pages to remain enabled.
 
-The frontend contract uses API version 5. Changes to API contracts must keep compatible interface behavior or intentionally change the release manifest version and deploy a matching Worker. The Worker never evaluates remotely fetched backend code.
+The frontend contract uses API version 8. Changes to API contracts must keep compatible interface behavior or intentionally change the release manifest version and deploy a matching Worker. The Worker never evaluates remotely fetched backend code.
 
 ## Local development
 
@@ -144,3 +144,13 @@ Migration 0005 adds cap_observations (up to 2,000, ten-minute retention) and cap
 Paper-test thesis opens a manual forward trial with a new current price check and the existing delayed-entry rules. The server loads the saved signal by ID, requires exact network/contract/pool identity and embeds its evidence immutably. Later removal of the short-lived signal archive does not rewrite the paper record; idempotent retries preserve it. A new Market-cap signal reason appears in descriptive paper outcomes. The price at paper setup is distinct from the cap signal's older snapshots; no past fill is backdated. This is not an automatic reproduction of the original Python paper strategy.
 
 API contract 7 prevents this interface from loading on older Workers without the cap schema. The public Pages demonstration remains synthetic. Neither provider samples, private trial records, local test data nor screenshots are included in Git or deployment archives.
+
+## Optional wallet-profit reports (September 21, 2026)
+
+Profit history opens from a large-trade sender, saved buy evidence or a followed wallet. The authenticated /api/intelligence/wallet route queries only GMGN's documented read-only wallet_profits endpoint, with one exact address and selected network. Supported periods are 24h, 7d and 30d; 48h/72h are not fabricated. This is individual-address research, not a whole-market leaderboard. The existing optional Birdeye ranking keeps its separate scope.
+
+GMGN documents a free API tier. Set a personal GMGN_API_KEY as a Sites server secret to activate this optional source. The app never receives a signing key, submits an order or accesses account-linked holdings. The documented public demo key is for local compatibility testing only and must not be deployed. No key is configured by this change; without one, requests return an explicit connection state and make no upstream request. Do not put keys in Git, browser storage, research notes or chat.
+
+The report allowlists selected-period realized profit, associated cost basis, buy/sell counts and current unrealized profit. Missing values stay unknown, losses remain negative and an empty response does not imply zero activity. Fees, transfer accounting, cost-basis methodology, observation time and Fomo identity are not independently established. Public senders may be routers or shared accounts. Copy report retains exact identity, period, source and receipt time.
+
+Results share the existing private market cache for five minutes, with an explicitly stale fallback up to one hour and one-day cache pruning after successful fetches. Requests share an eight-attempt/minute budget and minimum two-second spacing, honor provider cooldowns, use a ten-second timeout and reject responses larger than 350 KB. Only public address/network/period inputs are forwarded. No notes, user identity, app cookies or raw provider profile fields leave the workspace. Reports load on demand; no new polling or background collection is enabled.
