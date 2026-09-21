@@ -25,7 +25,7 @@ test('password validation and scenario boundaries',async()=>{
   assert.throws(()=>scenario(NaN,5));assert.throws(()=>scenario(5,-101));
 });
 test('server enforces authentication, origin, sharing, revisions and logout',async()=>{
-  for(const path of ['/api/workspace','/api/market','/api/market/chart','/api/market/trades','/api/intelligence/leaders','/api/intelligence/wallet','/api/token-checks','/api/wallets','/api/paper','/api/paper/observe'])assert.equal((await worker.fetch(req(path),env)).status,401);
+  for(const path of ['/api/workspace','/api/market','/api/market/chart','/api/market/trades','/api/intelligence/leaders','/api/intelligence/wallet','/api/alerts/buyers','/api/token-checks','/api/wallets','/api/paper','/api/paper/observe'])assert.equal((await worker.fetch(req(path),env)).status,401);
   assert.equal((await worker.fetch(req('/.env'),env)).status,404);
   assert.equal((await worker.fetch(req('/api/login','POST',{email:'maikymultimedia@gmail.com',password:'test-password'},'','https://evil.test'),env)).status,403);
   assert.equal((await worker.fetch(req('/api/login','POST',{email:'stranger@gmail.com',password:'test-password'}),env)).status,401);
@@ -47,6 +47,7 @@ test('server enforces authentication, origin, sharing, revisions and logout',asy
   }
   assert.deepEqual((await (await worker.fetch(req('/api/alerts','GET',null,cookie2),env)).json()).rules,[]);
   assert.equal((await worker.fetch(req('/api/alerts'),env)).status,401);
+  const buyerSummary=await worker.fetch(req('/api/alerts/buyers?window=48h','GET',null,cookie2),env);assert.equal(buyerSummary.status,200);const buyers=await buyerSummary.json();assert.equal(buyers.window,'48h');assert.equal(buyers.scope,'saved_buy_alerts');assert.deepEqual(buyers.rows,[]);
   assert.deepEqual((await (await worker.fetch(req('/api/paper','GET',null,cookie2),env)).json()).trials,[]);
   const update={...token,notes:'Team review',revision:1};
   assert.equal((await worker.fetch(req('/api/watchlist','POST',update,cookie2),env)).status,200);
@@ -68,11 +69,11 @@ test('source code and static assets expose no actual credential',()=>{
 test('GitHub release switches atomically only after all hashes verify',async()=>{
   const commit='a'.repeat(40),files={'index.html':'<html>Verified release <script src="/app.js"></script></html>','app.js':'/* verified */','style.css':'body{}','favicon.svg':'<svg/>','charts.js':'/* chart vendor */','NOTICE.txt':'Apache 2.0 notice'};
   const assets=Object.fromEntries(Object.entries(files).map(([k,v])=>[k,createHash('sha256').update(v).digest('hex')]));
-  globalThis.fetch=async url=>new Response(String(url).endsWith('workspace-release.json')?JSON.stringify({apiVersion:8,commit,assets}):files[String(url).split('/').pop()]);
+  globalThis.fetch=async url=>new Response(String(url).endsWith('workspace-release.json')?JSON.stringify({apiVersion:9,commit,assets}):files[String(url).split('/').pop()]);
   const good=(await import('../dist/server/index.js?good-release')).default;
   const response=await good.fetch(req('/'),env);assert.equal(response.headers.get('X-Fieldnotes-Revision'),commit);assert.match(await response.text(),/Verified release/);
   const bad=(await import('../dist/server/index.js?bad-release')).default;
-  globalThis.fetch=async url=>new Response(String(url).endsWith('workspace-release.json')?JSON.stringify({apiVersion:8,commit,assets}):'tampered');
+  globalThis.fetch=async url=>new Response(String(url).endsWith('workspace-release.json')?JSON.stringify({apiVersion:9,commit,assets}):'tampered');
   const fallback=await bad.fetch(req('/'),env);assert.notEqual(fallback.headers.get('X-Fieldnotes-Revision'),commit);assert.doesNotMatch(await fallback.text(),/tampered/);
   assert.equal((await good.fetch(req('/app.js?v='+ 'b'.repeat(40)),env)).status,409);
 });

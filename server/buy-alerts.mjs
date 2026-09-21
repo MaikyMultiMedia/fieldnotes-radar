@@ -1,3 +1,4 @@
+import {discoverBuyers} from './buyer-discovery.mjs';
 import {address,market} from './market.mjs';
 const fail=(message,status=400)=>Object.assign(new Error(message),{status});
 const hash=async value=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value))),b=>b.toString(16).padStart(2,'0')).join('');
@@ -54,6 +55,7 @@ async function scan(env){
 export async function buyAlerts(request,env,user,input){
   const url=new URL(request.url),path=url.pathname,method=request.method,unread=url.searchParams.get('unread')==='1';
   if(path==='/api/alerts'&&method==='GET')return list(env,unread);
+  if(path==='/api/alerts/buyers'&&method==='GET')return discoverBuyers(request,env);
   if(path==='/api/alerts/scan'&&method==='POST')return{...await scan(env),...await list(env,unread)};
   if(path==='/api/alerts/rules'&&method==='POST'){
     const settings=alertSettings(input),id=await hash(settings.chain+':'+settings.contract+':'+settings.pool),old=await env.DB.prepare('SELECT * FROM buy_alert_rules WHERE id=?').bind(id).first();

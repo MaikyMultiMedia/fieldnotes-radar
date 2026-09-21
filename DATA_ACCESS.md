@@ -77,3 +77,7 @@ The official GMGN Agent API and MIT-licensed client document a Free tier and rea
 - Official endpoint contract: https://github.com/GMGNAI/gmgn-skills/blob/main/src/client/OpenApiClient.ts
 
 The server uses only POST /v1/user/wallet_profits on https://openapi.gmgn.ai. This POST reads statistics; it neither submits trades nor signs anything. See WORKSPACE.md for the strict field allowlist, individual-wallet scope, caching and secret setup.
+
+## Saved-buyer discovery
+
+The private Traders view aggregates existing retained buy alerts only. It adds no upstream request, no provider account and no public redistribution. Windows use recorded transaction block times, with a hard seven-day/500-record input bound. Transaction and swap counts are kept separate for routed activity. Largest-buy sorting is explicitly observed activity, never a profit or beneficial-owner ranking. Exact evidence remains inside the two-user workspace; tests use synthetic histories only.

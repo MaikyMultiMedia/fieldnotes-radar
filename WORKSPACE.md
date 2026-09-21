@@ -18,7 +18,7 @@ The Sites Worker checks that release pointer at most once per minute per warm in
 
 **Automatic scope:** changes to `web/index.html`, `web/app.js`, `web/style.css`, `web/favicon.svg`, `web/charts.js`, and `web/NOTICE.txt`. Backend code, credentials, schemas, market adapters and the Python engine require a new Sites deployment. This is not unrestricted full-stack CI/CD. Do not claim that arbitrary GitHub changes are automatically deployed. Interface updates require the GitHub repository to remain publicly readable and GitHub Pages to remain enabled.
 
-The frontend contract uses API version 8. Changes to API contracts must keep compatible interface behavior or intentionally change the release manifest version and deploy a matching Worker. The Worker never evaluates remotely fetched backend code.
+The frontend contract uses API version 9. Changes to API contracts must keep compatible interface behavior or intentionally change the release manifest version and deploy a matching Worker. The Worker never evaluates remotely fetched backend code.
 
 ## Local development
 
@@ -154,3 +154,13 @@ GMGN documents a free API tier. Set a personal GMGN_API_KEY as a Sites server se
 The report allowlists selected-period realized profit, associated cost basis, buy/sell counts and current unrealized profit. Missing values stay unknown, losses remain negative and an empty response does not imply zero activity. Fees, transfer accounting, cost-basis methodology, observation time and Fomo identity are not independently established. Public senders may be routers or shared accounts. Copy report retains exact identity, period, source and receipt time.
 
 Results share the existing private market cache for five minutes, with an explicitly stale fallback up to one hour and one-day cache pruning after successful fetches. Requests share an eight-attempt/minute budget and minimum two-second spacing, honor provider cooldowns, use a ten-second timeout and reject responses larger than 350 KB. Only public address/network/period inputs are forwarded. No notes, user identity, app cookies or raw provider profile fields leave the workspace. Reports load on demand; no new polling or background collection is enabled.
+
+## Free saved-buyer discovery
+
+The Traders view summarizes retained buy alerts by exact network and public sender. It supports 24h, 48h, 72h and 7d windows based on transaction block time. Thirty-day discovery is unavailable because the inbox retains at most seven days. This is activity research, not a profit ranking or a complete wallet history.
+
+The authenticated GET `/api/alerts/buyers?window=24h` reads at most the latest 500 retained records using the existing detection-time index. It makes no upstream request and excludes future/expired records, unknown or nonpositive USD values, invalid identities, sells and unusable transaction evidence. Events are deduplicated by network/contract/pool/provider event ID. A sender's transaction count is deduplicated across pools by transaction hash; swap and pool counts still include routed legs. No summed volume, invested capital or PnL is inferred.
+
+Each row provides its largest observed buy and transaction link, distinct buy transactions, swap/pool/token counts, early-pool swap count, and first/last matching block times. Display filters apply to a sender's largest buy and do not change their other counts. At most 50 matching senders are displayed; all retained eligible senders are available to the filters. The summary shows assembly time rather than claiming a refreshed market timestamp. Users explicitly refresh it. Unread/reviewed state has no effect on discovery. Rule changes and discarded older records limit coverage, and removed rules can still contribute retained observations.
+
+Copied evidence includes exact identities, period, transaction, timestamps and coverage. Following uses the existing shared private address list. Profit history remains an optional separately connected provider. No new schema, data source, subscription or background process is required. The checked-interface compatibility contract is version 9.
