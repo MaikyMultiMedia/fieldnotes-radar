@@ -87,3 +87,21 @@ test('wallet reports copy the selected period and preserve losses, missing field
  evaluate("walletReport.data={status:'fresh',report:null};");assert.match(evaluate('walletProfitBody()'),/does not mean zero profit/);
  evaluate('state=null;');
 });
+
+test('buyer filters compose by exact network, size, repeated transactions and early pool evidence',()=>{
+ context.buyersFixture=[{key:'solana:a',chain:'solana',address:'a',largest:{usd:5000},transactions:1,earlySwaps:1},{key:'base:a',chain:'base',address:'a',largest:{usd:2000},transactions:3,earlySwaps:0},{key:'solana:b',chain:'solana',address:'b',largest:{usd:1500},transactions:2,earlySwaps:1}];
+ evaluate("buyers.minBuy=1000;buyers.chain='all';buyers.repeat=false;buyers.early=false;buyers.sort='largest'");
+ assert.deepEqual(Array.from(evaluate('matchingBuyers(buyersFixture)'),r=>r.key),['solana:a','base:a','solana:b']);
+ evaluate("buyers.repeat=true;buyers.early=true");assert.deepEqual(Array.from(evaluate('matchingBuyers(buyersFixture)'),r=>r.key),['solana:b']);
+ evaluate("buyers.early=false;buyers.sort='repeat'");assert.deepEqual(Array.from(evaluate('matchingBuyers(buyersFixture)'),r=>r.key),['base:a','solana:b']);
+ evaluate("buyers.chain='solana';buyers.minBuy=2000");assert.equal(evaluate('matchingBuyers(buyersFixture).length'),0);
+ assert.equal(context.buyersFixture[0].key,'solana:a');
+});
+
+test('buyer copy includes exact identities, block-time window, retention and transaction evidence',()=>{
+ context.buyerRow={key:'solana:synthetic',chain:'solana',address:'3'.repeat(32),swaps:4,transactions:2,pools:2,tokens:1,earlySwaps:1,first:new Date(now-60000).toISOString(),last:new Date(now).toISOString(),largest:{usd:1500,time:new Date(now).toISOString(),detected:new Date(now+1000).toISOString(),contract:'4'.repeat(32),pool:'5'.repeat(32),tx:'6'.repeat(64)}};
+ context.buyerData={window:'48h',since:new Date(now-48*3600000).toISOString(),assembledAt:new Date(now).toISOString(),recordsRead:500,matchedSwaps:490};evaluate("buyers.error='Refresh unavailable'");
+ const text=evaluate('buyerEvidenceText(buyerRow,buyerData)');assert.match(text,/Window: 48h/);assert.match(text,/refresh failed/);assert.match(text,/Distinct buy transactions: 2/);assert.match(text,/Latest 500 records/);assert.match(text,/not profit/);assert.ok(text.includes(context.buyerRow.address));assert.ok(text.includes(context.buyerRow.largest.tx));
+ evaluate("buyers.error='';buyers.data={rows:[],matchedSwaps:0,recordsRead:0,assembledAt:new Date(now).toISOString()};buyers.loading=false");assert.match(evaluate('buyerResults()'),/No usable saved buyers/);assert.match(evaluate('buyerResults()'),/Save a pool rule/);
+ evaluate('buyers.data=null;state=null');
+});

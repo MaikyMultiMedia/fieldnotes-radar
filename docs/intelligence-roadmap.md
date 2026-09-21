@@ -10,6 +10,7 @@ User preference: finish free features before connecting a paid data source.
 - On-demand free GoPlus token-control/fee checks on four chains, bounded holder samples, shared cached findings and historical paper-trial evidence. Provider reports are not independent audits.
 - Original cap-change thresholds applied to comparable received snapshots, with saved evidence and optional manual forward paper trials. Exact provider observation times remain unknown.
 - Documented freshness, incomplete sample coverage, known/unknown values and no invented trader identities.
+- Free buyer discovery groups retained alerts across 24h/48h/72h/7d by exact public sender, with largest-buy/repeat/early-pool filters, deduplicated transaction counts, copyable evidence and follow actions. Partial sampled activity is kept separate from profit rankings.
 - Optional individual-wallet profit reports open from large-buy evidence and followed wallets. The GMGN adapter supports 24h/7d/30d but awaits a personal key; it is not a whole-market ranking.
 - Optional realized-profit leaderboard adapter for 24h/48h/72h/7d/30d, disabled until authorized access is connected and tested live.
 
