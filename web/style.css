@@ -45,3 +45,6 @@ body{font-size:15px}h1{font-family:var(--font);font-weight:650;font-size:30px;le
 
 .alert-collection{display:block}.alert-collection strong{display:block;margin-bottom:6px}
 .cap-panel{margin-bottom:22px}.cap-panel .panel-head p{margin:6px 0 0}.cap-status{margin:0 0 8px}.cap-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.cap-results{border-top:1px solid var(--line,#302b39)}.cap-card{padding:18px;border:1px solid var(--line,#302b39);border-radius:12px;min-width:0}.cap-evidence{margin-bottom:16px}.cap-evidence p{margin:8px 0}.cap-card .card-actions{margin-top:16px}.cap-results>.row{align-items:flex-start;gap:16px;flex-wrap:wrap}@media(max-width:760px){.cap-grid{grid-template-columns:1fr}}
+
+.monitor-controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:14px}.footer .monitor-status{font-size:14px;text-align:left;padding:0;white-space:normal}.nav .count[hidden]{display:none}
+.nav #alerts-nav-count:not([hidden]){display:inline-block}

@@ -5,7 +5,7 @@ User preference: finish free features before connecting a paid data source.
 ## Current release
 - Fomo-inspired trading desk, preserving original copy/paste, filters, recommendations and shared notes.
 - Live price/liquidity/volume and exact-token candle/volume charts.
-- Selected-pool large-trade scan, early-pool flags, transaction evidence and private shared wallet follows. Saved forward buy alerts collect while the alert view is visible.
+- Selected-pool large-trade scan, early-pool flags, transaction evidence and private shared wallet follows. Saved forward buy alerts collect across all workspace views while the tab is visible, with unread navigation counts and a per-tab pause.
 - Shared forward paper journal: precommitted thesis/costs, delayed entry, sampled marks, explicit closure, missed/cancelled records and descriptive outcome groups.
 - On-demand free GoPlus token-control/fee checks on four chains, bounded holder samples, shared cached findings and historical paper-trial evidence. Provider reports are not independent audits.
 - Original cap-change thresholds applied to comparable received snapshots, with saved evidence and optional manual forward paper trials. Exact provider observation times remain unknown.
