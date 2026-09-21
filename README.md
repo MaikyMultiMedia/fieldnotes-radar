@@ -1,6 +1,6 @@
 # Fieldnotes · shared launch research
 
-**Private workspace:** The Sites-hosted edition now adds the two invited accounts, shared saved token research, and automatic checked GitHub interface updates. See [WORKSPACE.md](WORKSPACE.md) for setup, verification and integration limits. The public demo below remains separate. Neither edition places trades, and the market feed remains synthetic.
+**Private workspace:** The Sites-hosted edition now adds the two invited accounts, shared saved token research, and automatic checked GitHub interface updates. See [WORKSPACE.md](WORKSPACE.md) for setup, verification and integration limits. The public demo below remains separate. The private workspace now includes live GeckoTerminal token data and charts. Neither edition places trades; the public demo remains synthetic.
 
 A clean public edition of a read-only crypto research dashboard. Two views: **Launch Radar** and **Research Desk**. Designed for Windows, mobile browsers and collaborative development.
 
@@ -8,7 +8,7 @@ A clean public edition of a read-only crypto research dashboard. Two views: **La
 
 ## Current status
 
-The hosted site is a **clearly labeled synthetic demonstration**, not a live token feed. Public redistribution permission for the original feed has not been established. It has no holdings, wallet addresses, personal screenshots, credentials, transaction history, trades or account connection. No fake login is present. Anyone can view; GitHub accounts are used to contribute to the source.
+The GitHub Pages site is a **clearly labeled synthetic demonstration**, not a live token feed. Public redistribution permission for the original feed has not been established. It has no holdings, wallet addresses, personal screenshots, credentials, transaction history, trades or account connection. No fake login is present. Anyone can view; GitHub accounts are used to contribute to the source.
 
 The repository includes the tested `momentum.py` detection/paper-calculation engine so collaborators can continue the real implementation. It is not connected to the demo frontend. It supports same-mint/pool cap-change signals (up 50% or down 30%, at least $2,000, within 5 minutes), a separate evidence-gated full-holder rule, cooldowns, and next-observation $5 paper valuation. Neither engine nor frontend sends transactions.
 
@@ -40,7 +40,7 @@ The owner can invite a friend using their GitHub username. Source collaboration 
 - `app.py`: local demo server with an explicit static-file allowlist and isolated optional engine storage.
 - `tests/`: engine and privacy-boundary tests.
 - `.github/workflows/pages.yml`: checks plus GitHub Pages deployment.
-- `DATA_ACCESS.md`: current provider restrictions and the next integration contract.
+- `DATA_ACCESS.md`: active market provider, source scope and integration limits.
 
 ```powershell
 python -m unittest discover -s tests -v
