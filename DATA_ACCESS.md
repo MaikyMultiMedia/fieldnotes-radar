@@ -81,3 +81,14 @@ The server uses only POST /v1/user/wallet_profits on https://openapi.gmgn.ai. Th
 ## Saved-buyer discovery
 
 The private Traders view aggregates existing retained buy alerts only. It adds no upstream request, no provider account and no public redistribution. Windows use recorded transaction block times, with a hard seven-day/500-record input bound. Transaction and swap counts are kept separate for routed activity. Largest-buy sorting is explicitly observed activity, never a profit or beneficial-owner ranking. Exact evidence remains inside the two-user workspace; tests use synthetic histories only.
+
+## Free Raydium sell-route previews
+
+Raydium documents public, unauthenticated REST reads and a read-only quote phase. The private Research Desk uses GET https://api-v3.raydium.io/mint/ids for exact-mint decimal precision and GET https://transaction-v1.raydium.io/compute/swap-base-in for hypothetical Solana token-to-USDC quotes. Both endpoints returned valid unauthenticated responses on September 21, 2026. No SDK, personal key, paid access or new provider account is required.
+
+- REST conventions and access: https://docs.raydium.io/sdk-api/rest-api
+- Quote request, route limitations and lifetime: https://docs.raydium.io/sdk-api/trade-api
+- Read-only compute phase: https://docs.raydium.io/api-reference/route-api-v2/overview
+- Official metadata path reference: https://github.com/raydium-io/raydium-sdk-V2/blob/master/src/api/url.ts
+
+Only the public input contract, hypothetical amount, fixed USDC output contract and chosen slippage go upstream. No cookies, user identity, balance, wallet, notes or referral address is sent. Only allowlisted numeric quote evidence and route identities are retained privately. No transaction builder, serialized transaction, signing or send endpoint is used. This does not verify Fomo availability, token transferability, actual execution or net proceeds after all fees. The selected research chart pool may differ from the route. No public redistribution is enabled.

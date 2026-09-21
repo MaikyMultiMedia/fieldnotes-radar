@@ -105,3 +105,13 @@ test('buyer copy includes exact identities, block-time window, retention and tra
  evaluate("buyers.error='';buyers.data={rows:[],matchedSwaps:0,recordsRead:0,assembledAt:new Date(now).toISOString()};buyers.loading=false");assert.match(evaluate('buyerResults()'),/No usable saved buyers/);assert.match(evaluate('buyerResults()'),/Save a pool rule/);
  evaluate('buyers.data=null;state=null');
 });
+
+
+test('sell previews distinguish unsupported networks and expired quotes, preserving copied identity',()=>{
+ const q={contract:'synthetic-mint',inputAmount:'1',inputRaw:'1000000000',inputDecimals:9,outputMint:'synthetic-usdc',outputAmount:'125.123456',minimumAmount:'124.497838',slippageBps:50,requestedAt:new Date(now).toISOString(),fetchedAt:new Date(now+5000).toISOString(),expiresAt:new Date(now+30000).toISOString(),route:[{pool:'synthetic-route-pool',inputMint:'synthetic-mint',outputMint:'synthetic-usdc'}],sourceUrl:'https://docs.raydium.io/sdk-api/trade-api'};
+ context.sellFixture=q;
+ assert.equal(evaluate('quoteFresh(sellFixture,now+5000)'),true);assert.equal(evaluate('quoteFresh(sellFixture,now+30000)'),false);assert.equal(evaluate('quoteFresh(sellFixture,now)'),false);
+ assert.match(evaluate("exitQuotePanel({chain:'base',contract:'test',symbol:'TEST'})"),/not supported/);assert.doesNotMatch(evaluate("exitQuotePanel({chain:'base',contract:'test',symbol:'TEST'})"),/data-action="open-sell-preview"/);
+ assert.match(evaluate("exitQuotePanel({chain:'solana',contract:quoteUSDC,symbol:'USDC'})"),/already the output/);
+ const text=evaluate("sellQuoteText(sellFixture,{pool:'synthetic-chart-pool'},now+31000)");assert.match(text,/Expired snapshot/);assert.match(text,/125\.123456 USDC/);assert.match(text,/synthetic-chart-pool/);assert.match(text,/synthetic-route-pool/);assert.match(text,/not a Fomo quote/);
+});
