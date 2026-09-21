@@ -115,3 +115,17 @@ test('sell previews distinguish unsupported networks and expired quotes, preserv
  assert.match(evaluate("exitQuotePanel({chain:'solana',contract:quoteUSDC,symbol:'USDC'})"),/already the output/);
  const text=evaluate("sellQuoteText(sellFixture,{pool:'synthetic-chart-pool'},now+31000)");assert.match(text,/Expired snapshot/);assert.match(text,/125\.123456 USDC/);assert.match(text,/synthetic-chart-pool/);assert.match(text,/synthetic-route-pool/);assert.match(text,/not a Fomo quote/);
 });
+
+
+test('paper plan presentation distinguishes target, delay and missed exits without implying a real fill',()=>{
+ context.plannedTrial={name:'Synthetic planned trial',symbol:'QA',chain:'solana',contract:'synthetic-contract',pool:'synthetic-pool',author:'qa@example.test',tag:'large_buy',status:'missed_exit',assumptions:{outlay:5,feePct:1,fixedFee:.1,slippagePct:1,delaySeconds:60,holdSeconds:300},entry:{at:now,delaySeconds:60,sourcePrice:1,driftPct:0},exitDueAt:now+300000,exitDeadlineAt:now+600000,seed:{fetchedAt:now,price:1,sourceUrl:'https://example.test/synthetic'},marks:[],observations:1,thesis:'Synthetic QA',reflection:''};
+ const card=evaluate('paperCard(plannedTrial)');assert.match(card,/Exit missed/);assert.match(card,/no closed return/);assert.match(card,/5-minute planned exit/);assert.doesNotMatch(card,/data-paper-close=/);
+ const text=evaluate('paperRecordText(plannedTrial)');assert.match(text,/Exit capture deadline:/);assert.match(text,/Closed paper P&L: Not closed/);assert.match(text,/no verified sell route or fills/);
+ const groups=evaluate("paperPlanComparison([{holdSeconds:300,total:3,closed:1,active:0,missedEntry:0,missedExit:1,cancelled:1,medianReturnPct:-10,meanReturnPct:-10}])");assert.match(groups,/Missed entry \/ exit/);assert.match(groups,/-10\.00%/);assert.match(groups,/not zero returns/);
+});
+
+test('linked buy paper evidence retains exact identity and separates the observed buy from a later trial',()=>{
+ context.paperBuy={id:'synthetic-alert',chain:'solana',contract:'synthetic-contract',pool:'synthetic-pool',provider:'GeckoTerminal',detected:now,trade:{usd:1000,sender:'synthetic-sender',tx:'synthetic-tx',time:new Date(now-60000).toISOString(),earlyPoolBuy:true},rule:{minUsd:1000,early:true},coverage:{complete:false},fetchedAt:new Date(now).toISOString(),sourceUrl:'https://example.test/synthetic'};
+ const text=evaluate('buyPaperText(paperBuy)');assert.match(text,/synthetic-alert/);assert.match(text,/synthetic-contract/);assert.match(text,/synthetic-pool/);assert.match(text,/synthetic-sender/);assert.match(text,/The paper entry begins later/);assert.match(text,/"complete":false/);
+ assert.match(evaluate('buyPaperEvidence(paperBuy)'),/does not copy this buyer’s fill/);
+});

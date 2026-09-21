@@ -69,11 +69,11 @@ test('source code and static assets expose no actual credential',()=>{
 test('GitHub release switches atomically only after all hashes verify',async()=>{
   const commit='a'.repeat(40),files={'index.html':'<html>Verified release <script src="/app.js"></script></html>','app.js':'/* verified */','style.css':'body{}','favicon.svg':'<svg/>','charts.js':'/* chart vendor */','NOTICE.txt':'Apache 2.0 notice'};
   const assets=Object.fromEntries(Object.entries(files).map(([k,v])=>[k,createHash('sha256').update(v).digest('hex')]));
-  globalThis.fetch=async url=>new Response(String(url).endsWith('workspace-release.json')?JSON.stringify({apiVersion:10,commit,assets}):files[String(url).split('/').pop()]);
+  globalThis.fetch=async url=>new Response(String(url).endsWith('workspace-release.json')?JSON.stringify({apiVersion:11,commit,assets}):files[String(url).split('/').pop()]);
   const good=(await import('../dist/server/index.js?good-release')).default;
   const response=await good.fetch(req('/'),env);assert.equal(response.headers.get('X-Fieldnotes-Revision'),commit);assert.match(await response.text(),/Verified release/);
   const bad=(await import('../dist/server/index.js?bad-release')).default;
-  globalThis.fetch=async url=>new Response(String(url).endsWith('workspace-release.json')?JSON.stringify({apiVersion:10,commit,assets}):'tampered');
+  globalThis.fetch=async url=>new Response(String(url).endsWith('workspace-release.json')?JSON.stringify({apiVersion:11,commit,assets}):'tampered');
   const fallback=await bad.fetch(req('/'),env);assert.notEqual(fallback.headers.get('X-Fieldnotes-Revision'),commit);assert.doesNotMatch(await fallback.text(),/tampered/);
   assert.equal((await good.fetch(req('/app.js?v='+ 'b'.repeat(40)),env)).status,409);
 });
