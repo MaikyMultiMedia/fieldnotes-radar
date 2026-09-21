@@ -59,3 +59,9 @@ test('three-rule bound, rotation, retention and unread queries work across the s
   now+=61000;await buyAlerts(req('/api/alerts/scan'),env,'qa@example.test');assert.equal(db.prepare('SELECT count(*) AS n FROM buy_alerts').get().n,500);
   now+=8*86400000;data=await buyAlerts(req('/api/alerts','GET'),env,'qa@example.test');assert.equal(data.total,0);assert.equal(data.alerts.length,0);
 });
+test('a full 300-match sample stays within free database query and binding limits',async t=>{
+  const {db,env}=database();t.after(()=>db.close());let now=start,queries=0;const original=env.DB.prepare;
+  env.DB.prepare=(sql)=>{queries++;assert.ok(queries<=50);assert.ok((sql.match(/\?/g)||[]).length<=100);return original(sql);};
+  t.mock.method(Date,'now',()=>now);t.mock.method(globalThis,'fetch',async url=>new Response(JSON.stringify(String(url).endsWith('/trades')?{data:Array.from({length:300},(_,i)=>trade('synthetic_'+i))}:provider())));
+  await buyAlerts(req(),env,'qa@example.test',settings);now+=61000;queries=0;let data=await buyAlerts(req('/api/alerts/scan'),env,'qa@example.test');assert.equal(data.added,300);assert.equal(data.total,300);assert.ok(queries<30);
+});

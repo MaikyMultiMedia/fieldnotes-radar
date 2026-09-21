@@ -38,10 +38,14 @@ async function scan(env){
     for(const trade of candidates){
       const id=await hash(rule.chain+':'+rule.contract+':'+rule.pool+':'+trade.id);
       const payload={trade,token:snapshot.poolDetails,chain:rule.chain,contract:rule.contract,pool:rule.pool,provider:'GeckoTerminal',fetchedAt:snapshot.fetchedAt,detailsFetchedAt:snapshot.detailsFetchedAt,latencySeconds:Math.floor((detected-Date.parse(trade.time))/1000),rule:{minUsd:rule.minUsd,early:rule.early,followed:rule.followed,since:rule.updated},coverage:snapshot.coverage};
-      writes.push(env.DB.prepare('INSERT OR IGNORE INTO buy_alerts (id,detected,seen,payload) SELECT ?,?,0,? WHERE EXISTS (SELECT 1 FROM buy_alert_rules WHERE id=? AND revision=?)').bind(id,detected,JSON.stringify(payload),rule.id,rule.revision));
+      writes.push([id,detected,JSON.stringify(payload)]);
     }
-    // D1 batches stay bounded; every insert still checks the rule revision.
-    for(let i=0;i<writes.length;i+=50){const result=await env.DB.batch(writes.slice(i,i+50));added+=result.reduce((sum,r)=>sum+(r.meta.changes||0),0);}
+    // 25 rows use 77 bindings. Even 300 matches stay below D1's free 50-query invocation limit.
+    for(let i=0;i<writes.length;i+=25){
+      const rows=writes.slice(i,i+25),placeholders=rows.map(()=>'(?,?,?)').join(',');
+      const result=await env.DB.prepare('INSERT OR IGNORE INTO buy_alerts (id,detected,seen,payload) SELECT column1,column2,0,column3 FROM (VALUES '+placeholders+') WHERE EXISTS (SELECT 1 FROM buy_alert_rules WHERE id=? AND revision=?)').bind(...rows.flat(),rule.id,rule.revision).run();
+      added+=result.meta.changes||0;
+    }
     report={recentIds:snapshot.trades.map(t=>t.id),at:detected,status:'sampled',added,matched:candidates.length,fetchedAt:snapshot.fetchedAt,coverage:snapshot.coverage,unknownUsd:snapshot.trades.filter(t=>t.usd===null).length,gapPossible:!snapshot.coverage.oldest||Date.parse(snapshot.coverage.oldest)>Math.max(rule.updated,rule.lastScan?.status==='sampled'?Date.parse(rule.lastScan.fetchedAt):rule.updated)};
   }catch(e){report={recentIds:rule.lastScan?.recentIds||[],at:Date.now(),status:'unavailable',error:e.status?e.message:'The pool could not be checked. Try again shortly.'};}
   await env.DB.batch([env.DB.prepare('UPDATE buy_alert_rules SET scan=? WHERE id=? AND revision=? AND checked=?').bind(JSON.stringify(report),rule.id,rule.revision,now),env.DB.prepare('DELETE FROM buy_alerts WHERE detected<? OR id NOT IN (SELECT id FROM buy_alerts ORDER BY detected DESC,id LIMIT 500)').bind(Date.now()-WEEK)]);
