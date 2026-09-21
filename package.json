@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "node scripts/build.mjs",
-    "test": "node --test tests/workspace.test.mjs tests/market.test.mjs tests/research-ui.test.mjs tests/intelligence.test.mjs tests/paper.test.mjs",
+    "test": "node --test tests/workspace.test.mjs tests/market.test.mjs tests/research-ui.test.mjs tests/intelligence.test.mjs tests/paper.test.mjs tests/token-checks.test.mjs",
     "dev": "node scripts/preview.mjs",
     "db:generate": "drizzle-kit generate",
     "install:ci": "npm ci"

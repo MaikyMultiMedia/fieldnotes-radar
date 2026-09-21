@@ -45,3 +45,17 @@ Public swap observations are cached only in the private workspace with one-day p
 ## Private paper observations
 
 The paper journal reuses the existing exact-pool price endpoint, cache and shared free request budget. Only public chain and pool identifiers are sent upstream. Its immutable starting snapshot, hypothetical assumptions, sampled marks, thesis and takeaways persist privately in Sites D1, outside the short-lived market cache. No new provider, paid entitlement, Fomo API or execution access is introduced. The journal uses snapshot receipt times and illustrative costs; simulated proceeds are not verified fills or realized trading profits.
+
+## Active free token checks
+
+GoPlus describes its Security API as open and license-free, and its support page documents free access with a 30-call/minute limit. This private integration uses an unauthenticated single-token endpoint, capped at eight calls/minute with caching. It neither purchases access nor exposes reports through the public GitHub demo.
+
+- API product and use: https://www.gopluslabs.io/en/security-api
+- Free rate limits: https://docs.gopluslabs.io/reference/support
+- Solana beta endpoint: https://docs.gopluslabs.io/reference/solanatokensecurityusingget
+- Solana fields: https://docs.gopluslabs.io/reference/response-detail-1
+- EVM endpoint: https://docs.gopluslabs.io/reference/tokensecurityusingget_1
+- EVM fields: https://docs.gopluslabs.io/reference/response-details
+- Chain IDs: https://docs.gopluslabs.io/reference/response-details-9
+
+Live responses were checked September 21, 2026 for Solana, Ethereum, Base and BNB Chain. Reports are attributed third-party findings with unknown observation time, not independently verified facts. Only allowlisted controls, rates and a bounded public holder sample are cached. Solana token accounts are not treated as owners or profitable wallets. Cached summaries influence the existing research shortlist, and a fresh compact report may be retained privately with a paper trial. No notes, users, credentials or personal holdings are sent to GoPlus.

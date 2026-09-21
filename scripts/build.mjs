@@ -15,3 +15,5 @@ console.log('Worker and embedded fallback built.');
 fs.copyFileSync('server/intelligence.mjs','dist/server/intelligence.mjs');
 
 fs.copyFileSync('server/paper.mjs','dist/server/paper.mjs');
+
+fs.copyFileSync('server/token-checks.mjs','dist/server/token-checks.mjs');

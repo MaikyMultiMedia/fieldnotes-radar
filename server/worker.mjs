@@ -1,5 +1,6 @@
 import { embedded, sourceCommit } from './embedded.mjs';
 import { paper } from './paper.mjs';
+import { tokenChecks, checkSummaries } from './token-checks.mjs';
 import { leaderboard } from './intelligence.mjs';
 import { address } from './market.mjs';
 import { market } from './market.mjs';
@@ -77,7 +78,7 @@ async function loadRelease() {
     const r=await fetch(base+'/workspace-release.json', {signal:AbortSignal.timeout(3500),cache:'no-store'});
     if(!r.ok) throw Error('Release unavailable');
     const data=await r.json();
-    if(data.apiVersion!==4||!/^([a-f0-9]{40})$/.test(data.commit)||!data.assets) throw Error('Incompatible release');
+    if(data.apiVersion!==5||!/^([a-f0-9]{40})$/.test(data.commit)||!data.assets) throw Error('Incompatible release');
     if(Object.values(files).some(([f])=>!/^[a-f0-9]{64}$/.test(data.assets[f]||''))) throw Error('Incomplete release');
     let contents=verifiedReleases.get(data.commit);
     if(!contents){
@@ -141,6 +142,7 @@ async function handle(request,env) {
   if(!user) return json({error:'Please sign in.'},401);
   if(request.method==='GET'&&(path==='/api/market'||path==='/api/market/chart'||path==='/api/market/trades')) return json(await market(request,env));
   if(path==='/api/paper'||path.startsWith('/api/paper/'))return json(await paper(request,env,user,request.method==='POST'?await body(request):null));
+  if(path==='/api/token-checks'&&request.method==='GET')return json(await tokenChecks(request,env));
   if(path==='/api/intelligence/leaders'&&request.method==='GET')return json(await leaderboard(request,env));
   if(path==='/api/logout'&&request.method==='POST') {
     const token=request.headers.get('cookie').split(';').map(x=>x.trim()).find(x=>x.startsWith(cookieName+'=')).slice(cookieName.length+1);
@@ -150,7 +152,7 @@ async function handle(request,env) {
   if(path==='/api/workspace'&&request.method==='GET') {
     const results=await env.DB.batch([env.DB.prepare('SELECT * FROM watchlist ORDER BY updated DESC LIMIT 300'),env.DB.prepare('SELECT * FROM activity ORDER BY at DESC LIMIT 25'),env.DB.prepare('SELECT * FROM wallets ORDER BY updated DESC LIMIT 100')]);
     const rev=await release();
-    return json({user,watchlist:results[0].results,activity:results[1].results,wallets:results[2].results,release:{commit:rev.commit,mode:rev.mode,backend:sourceCommit},feed:JSON.parse(embedded['feed.json'])});
+    return json({user,tokenCheckSummaries:await checkSummaries(env),watchlist:results[0].results,activity:results[1].results,wallets:results[2].results,release:{commit:rev.commit,mode:rev.mode,backend:sourceCommit},feed:JSON.parse(embedded['feed.json'])});
   }
   if(path==='/api/wallets'&&request.method==='POST') {
     const data=await body(request),chain=data.chain,account=address(chain,data.address),label=String(data.label||'').trim();

@@ -1,6 +1,6 @@
 # Fieldnotes · shared launch research
 
-**Private workspace:** The Sites-hosted edition now adds the two invited accounts, shared saved token research, and automatic checked GitHub interface updates. See [WORKSPACE.md](WORKSPACE.md) for setup, verification and integration limits. The public demo below remains separate. The private workspace now includes live GeckoTerminal token data and charts, selected-pool large-buy research, wallet follows, and a shared forward paper journal with delayed entries and adjustable costs. Neither edition places trades; the public demo remains synthetic.
+**Private workspace:** The Sites-hosted edition now adds the two invited accounts, shared saved token research, and automatic checked GitHub interface updates. See [WORKSPACE.md](WORKSPACE.md) for setup, verification and integration limits. The public demo below remains separate. The private workspace now includes live GeckoTerminal token data and charts, selected-pool large-buy research, wallet follows, free token-control reports, and a shared forward paper journal with delayed entries and adjustable costs. Neither edition places trades; the public demo remains synthetic.
 
 A clean public edition of a read-only crypto research dashboard. Two views: **Launch Radar** and **Research Desk**. Designed for Windows, mobile browsers and collaborative development.
 
