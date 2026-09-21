@@ -1,7 +1,10 @@
 import fs from 'node:fs';
 import http from 'node:http';
 import {DatabaseSync} from 'node:sqlite';
-import worker from '../dist/server/index.js';
+// Preview local edits even when a verified GitHub interface release exists.
+const upstreamFetch=globalThis.fetch;
+globalThis.fetch=(input,options)=>['maikymultimedia.github.io','raw.githubusercontent.com'].includes(new URL(typeof input==='string'?input:input.url||input).hostname)?Promise.resolve(new Response('Local interface preview',{status:503})):upstreamFetch(input,options);
+const {default:worker}=await import('../dist/server/index.js');
 fs.mkdirSync('.local',{recursive:true});
 const db=new DatabaseSync('.local/workspace.sqlite');
 db.exec('CREATE TABLE IF NOT EXISTS _migrations (name TEXT PRIMARY KEY)');
