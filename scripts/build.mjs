@@ -7,6 +7,7 @@ const commit=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
 fs.mkdirSync('dist/server',{recursive:true});fs.mkdirSync('dist/.openai',{recursive:true});
 fs.writeFileSync('dist/server/embedded.mjs',`export const embedded=${JSON.stringify(embedded)};\nexport const sourceCommit=${JSON.stringify(commit)};\n`);
 fs.copyFileSync('server/worker.mjs','dist/server/index.js');
+fs.copyFileSync('server/market.mjs','dist/server/market.mjs');
 fs.copyFileSync('.openai/hosting.json','dist/.openai/hosting.json');
 if(fs.existsSync('drizzle'))fs.cpSync('drizzle','dist/.openai/drizzle',{recursive:true});
 console.log('Worker and embedded fallback built.');

@@ -1,4 +1,5 @@
 import { embedded, sourceCommit } from './embedded.mjs';
+import { market } from './market.mjs';
 
 const USERS = new Set(['maikymultimedia@gmail.com', 'alexanderpinedo94@gmail.com']);
 const enc = new TextEncoder();
@@ -73,7 +74,7 @@ async function loadRelease() {
     const r=await fetch(base+'/workspace-release.json', {signal:AbortSignal.timeout(3500),cache:'no-store'});
     if(!r.ok) throw Error('Release unavailable');
     const data=await r.json();
-    if(data.apiVersion!==1||!/^([a-f0-9]{40})$/.test(data.commit)||!data.assets) throw Error('Incompatible release');
+    if(data.apiVersion!==2||!/^([a-f0-9]{40})$/.test(data.commit)||!data.assets) throw Error('Incompatible release');
     if(Object.values(files).some(([f])=>!/^[a-f0-9]{64}$/.test(data.assets[f]||''))) throw Error('Incomplete release');
     let contents=verifiedReleases.get(data.commit);
     if(!contents){
@@ -135,6 +136,7 @@ async function handle(request,env) {
   }
   const user=await currentUser(request,env);
   if(!user) return json({error:'Please sign in.'},401);
+  if(request.method==='GET'&&(path==='/api/market'||path==='/api/market/chart')) return json(await market(request,env));
   if(path==='/api/logout'&&request.method==='POST') {
     const token=request.headers.get('cookie').split(';').map(x=>x.trim()).find(x=>x.startsWith(cookieName+'=')).slice(cookieName.length+1);
     await env.DB.prepare('DELETE FROM sessions WHERE hash = ?').bind(await hash(token)).run();

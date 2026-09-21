@@ -15,3 +15,10 @@ export const activity = sqliteTable('activity', {
   id: text('id').primaryKey(), user: text('user').notNull(), action: text('action').notNull(),
   subject: text('subject').notNull(), at: integer('at').notNull(),
 }, t => [index('activity_at_idx').on(t.at)]);
+
+export const marketCache = sqliteTable('market_cache', {
+  key: text('key').primaryKey(), payload: text('payload').notNull(), fetched: integer('fetched').notNull(),
+}, t => [index('market_cache_fetched_idx').on(t.fetched)]);
+export const marketBudget = sqliteTable('market_budget', {
+  id: text('id').primaryKey(), calls: integer('calls').notNull(), windowStart: integer('window_start').notNull(), blockedUntil: integer('blocked_until').notNull(),
+});

@@ -1,19 +1,34 @@
-# Data access and public deployment
+# Market data access
 
-Reviewed September 20, 2026. This edition currently serves synthetic examples only. It intentionally contains no personal-source adapters or collected observations.
+Reviewed September 20, 2026.
 
-PumpPortal terms section 6 restrict publication/distribution and third-party access absent express authorization, and describe a personal limited license: https://pumpportal.fun/legal/
+## Active private Sites integration
 
-DEX Screener terms restrict unauthorized third-party availability and directly competing services; public use of this particular product needs permission/scope review: https://docs.dexscreener.com/api/api-terms-and-conditions
+The owner authorized live public token data for the two-user research workspace. This edition uses GeckoTerminal's documented public API without an API key or a paid subscription. Its API guide explicitly describes building apps with live prices, volume, liquidity and historical charts. Source attribution and exact pool links appear in the interface.
 
-Fomo account/feed/chat collection remains unauthorized. No logged-in session is accessed or reused: https://fomo.family/terms
+- Public API guide: https://apiguide.geckoterminal.com/
+- FAQ, rate limits and nullable market cap: https://apiguide.geckoterminal.com/faq
+- Public API product page: https://www.geckoterminal.com/dex-api
+- OHLCV schema reference: https://docs.coingecko.com/reference/pool-ohlcv-contract-address
 
-## Next implementation
+Official pages describe differing free limits (10 or 30 calls/minute); this implementation caps upstream attempts at eight/minute across the workspace and respects provider cooldowns. Cache sharing and minute refreshes reduce load. This is a polling research feed, not a real-time execution quote or guaranteed detection latency.
 
-Obtain written public-display/redistribution permission or select a provider whose documented license covers the intended hosted service. Then implement a replaceable adapter that outputs only an allowlisted public schema: exact mint, pool, source URL, source/receipt timestamps, cap/price, nullable liquidity, properly scoped volume and holder methodology. Never merge wallet or account fields into this public schema. Test malformed responses and private-field rejection.
+The adapter displays only exact token/pool identities, prices, price changes where supported, pool liquidity, 24-hour pool volume, buy/sell counts, nullable market cap, separate FDV, pool creation time and OHLCV. It does not request wallets, account profiles or holdings. Unknown values remain unknown. The UI's receipt time is not represented as a provider observation timestamp. Pool creation is not token launch evidence, and pool volume is not since-launch volume.
 
-Host the collector/API separately from static GitHub Pages, with cache/rate limits, TLS, source attribution, explicit retention policy and budget. Data source cadence is not a detection latency guarantee. Exact launch time requires chain evidence; since-launch volume requires complete trade coverage. Authentication is unnecessary for a truly public read-only feed, but required before adding private user settings or holdings.
+Server-side access requires the existing app session. Requests go to the fixed public API origin with public search terms/contracts only; notes, passwords, user identities and session cookies are never forwarded. Short-lived cached responses and rate budgets persist in the Sites database. See WORKSPACE.md for retention, limits and stale-data behavior.
 
-## Draft permission request (not sent)
+The separate GitHub Pages demo retains its synthetic fixtures. This change does not turn that public demo into a live-data redistribution service.
 
-We are developing a small read-only token-launch research dashboard for public viewing. We want to display creation events and derived market-change alerts with attribution and source links, without trading or reselling a raw API. Please confirm whether your license permits this, any user/traffic limits, retention restrictions, attribution requirements and applicable pricing. We will keep public live data disabled pending your response.
+## Fomo scope
+
+Fomo remains the manual trading destination: https://fomo.family/
+
+No official Fomo market/trading API access has been provisioned. No Fomo session, feed, chat, account endpoint or dashboard is scraped or reused. Listing a pool on GeckoTerminal does not establish Fomo availability. Users must match the network and exact token contract in Fomo and review its actual quote themselves. There is no order submission, wallet signing, account linkage, automated buying/selling or trade history import.
+
+## Other providers
+
+PumpPortal and DEX Screener are not integrated. Earlier restrictions noted for their public redistribution remain outside the scope of this release:
+- https://pumpportal.fun/legal/
+- https://docs.dexscreener.com/api/api-terms-and-conditions
+
+The original permission-request draft was never sent. A different provider or wider public service requires its own access and usage review. No provider permission or commercial license beyond the documented public API access is claimed.
