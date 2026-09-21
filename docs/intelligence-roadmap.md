@@ -6,7 +6,7 @@ User preference: finish free features before connecting a paid data source.
 - Fomo-inspired trading desk, preserving original copy/paste, filters, recommendations and shared notes.
 - Live price/liquidity/volume and exact-token candle/volume charts.
 - Selected-pool large-trade scan, early-pool flags, transaction evidence and private shared wallet follows. Saved forward buy alerts collect across all workspace views while the tab is visible, with unread navigation counts and a per-tab pause.
-- Shared forward paper journal: precommitted thesis/costs, delayed entry, sampled marks, explicit closure, missed/cancelled records and descriptive outcome groups.
+- Shared forward paper journal: precommitted thesis/costs, delayed entry, optional fixed 5/15/60-minute exits, immutable linked buy/cap evidence, sampled marks, missed-entry/exit and cancellation records, and separate descriptive exit-plan groups.
 - On-demand free GoPlus token-control/fee checks on four chains, bounded holder samples, shared cached findings and historical paper-trial evidence. Provider reports are not independent audits.
 - Original cap-change thresholds applied to comparable received snapshots, with saved evidence and optional manual forward paper trials. Exact provider observation times remain unknown.
 - Free on-demand Solana token-to-USDC Raydium sell-route previews with exact decimal handling, source/route evidence and expiry. No wallet connection or execution.
@@ -18,7 +18,7 @@ User preference: finish free features before connecting a paid data source.
 ## Outstanding for the broader goal
 - Validate the optional ranking integration with an entitled key and source-defined fees/transfer treatment. Only then rank that provider cohort; Fomo-specific identity remains unverified.
 - Whole-wallet trade monitoring and continuous low-latency coverage need a suitable indexer and explicitly accepted operating budget. Current selected-pool polling is not that service.
-- Collect sufficient forward observations and evaluate signal outcomes using independent held-out evidence, execution costs and slippage. The new manually selected journal is an initial evidence tool, not validation. Do not label a heuristic intelligent or profitable without measured evidence.
+- Collect sufficient forward observations and evaluate signal outcomes using independent held-out evidence, execution costs and slippage. The manually selected journal now fixes optional exit horizons and retains missing outcomes, but still needs sufficient independent evidence and is not validation. Do not label a heuristic intelligent or profitable without measured evidence.
 - Source-timestamped cap changes and complete-holder/combined launch rules still need comparable verified measurements. The new receipt-time cap comparisons do not establish exchange-time launch events. Keep paper outcomes distinct from real executions.
 - Independently verify token controls and owner-level concentration beyond the new GoPlus reports. Raydium now supplies size-specific Solana route previews; actual executable Fomo quotes, fee reconciliation and other networks remain unverified.
 

@@ -114,3 +114,96 @@ test('unavailable live quotes cannot create a closed result',async t=>{
   const kept=(await paper(req('/api/paper','GET'),env,'first@example.test')).trials[0];assert.equal(kept.status,'open');assert.equal(kept.exit,null);
 });
 
+
+
+test('fixed exits start at observed entry and accept only a later usable snapshot inside their window',()=>{
+ for(const holdSeconds of [300,900,3600]){
+  const t=trial();t.assumptions.holdSeconds=holdSeconds;
+  const entered=advancePaper(t,snapshot(start+65000),start+65000),due=start+65000+holdSeconds*1000;
+  assert.equal(entered.exitDueAt,due);assert.equal(entered.exitDeadlineAt,due+300000);
+  const before=advancePaper(entered,snapshot(due-1,3),due);assert.equal(before.status,'open');assert.equal(before.exit,null);
+  for(const q of [null,{...snapshot(due),status:'stale'},snapshot(due,0)])assert.equal(advancePaper(before,q,due).exit,null);
+  const closed=advancePaper(before,snapshot(due+60000,3),due+60000);
+  assert.equal(closed.status,'closed');assert.equal(closed.exit.method,'planned');assert.equal(closed.exit.delaySeconds,60);assert.equal(closed.exit.holdingSeconds,holdSeconds+60);assert.equal(closed.exit.targetAt,new Date(due).toISOString());assert.equal(closed.exit.closedBy,null);
+  assert.deepEqual(advancePaper(closed,snapshot(due+120000,100),due+120000),closed);
+  assert.equal(advancePaper(entered,snapshot(due+300000,3),due+300000).status,'closed');
+  const late=advancePaper(entered,snapshot(due+300000,3),due+300001);assert.equal(late.status,'missed_exit');assert.equal(late.exit,null);assert.equal(late.observations,1);assert.equal(paperView(late,due+300001).currentMark,null);
+ }
+ for(const holdSeconds of [null,'',1,-1,60,301,NaN,Infinity,'5m'])assert.throws(()=>assumptions({...costs,holdSeconds}));
+ assert.deepEqual(assumptions({...costs,holdSeconds:'0'}),costs);assert.equal(assumptions({...costs,holdSeconds:'900'}).holdSeconds,900);
+});
+
+test('exit-plan groups keep missing and cancelled trials in their denominators and separate manual exits',()=>{
+ const rows=[
+  {status:'closed',assumptions:{holdSeconds:300},exit:{pnl:1,returnPct:10}},
+  {status:'closed',assumptions:{holdSeconds:300},exit:{pnl:-2,returnPct:-20}},
+  {status:'closed',assumptions:{holdSeconds:300},exit:{pnl:100,returnPct:1000}},
+  {status:'missed_exit',assumptions:{holdSeconds:300},lastMark:{pnl:500}},
+  {status:'missed',assumptions:{holdSeconds:300}},
+  {status:'cancelled',assumptions:{holdSeconds:300}},
+  {status:'open',assumptions:{holdSeconds:300}},
+  {status:'closed',assumptions:{},exit:{pnl:5,returnPct:50}},
+ ];
+ const s=paperSummary(rows),g=s.byPlan.find(g=>g.holdSeconds===300);
+ assert.equal(g.total,7);assert.equal(g.closed,3);assert.equal(g.active,1);assert.equal(g.missedEntry,1);assert.equal(g.missedExit,1);assert.equal(g.cancelled,1);assert.equal(g.medianReturnPct,10);assert.equal(g.meanReturnPct,330);
+ assert.equal(s.missed,2);assert.equal(s.byPlan[0].closed,1);assert.equal(s.byPlan.find(g=>g.holdSeconds===900).medianReturnPct,null);
+});
+
+test('planned exit persists, cannot be manually closed or changed, and retries retain the same record',async t=>{
+ const {db,env}=database();t.after(()=>db.close());let now=start,price=2;
+ t.mock.method(Date,'now',()=>now);t.mock.method(globalThis,'fetch',async()=>Response.json(provider(price)));
+ const body={...input(),holdSeconds:300},created=(await paper(req(),env,'one@example.test',body)).trial;
+ assert.equal(created.assumptions.holdSeconds,300);
+ await assert.rejects(paper(req(),env,'one@example.test',{...body,holdSeconds:900}),{status:409});
+ now+=61000;await paper(req('/api/paper/observe'),env,'two@example.test');
+ let record=(await paper(req('/api/paper','GET'),env,'two@example.test')).trials[0];
+ await assert.rejects(paper(req('/api/paper/'+record.id+'/close'),env,'two@example.test',{revision:record.revision}),{status:409});
+ const changed=(await paper(req('/api/paper/'+record.id+'/reflection'),env,'two@example.test',{revision:record.revision,reflection:'Synthetic note',holdSeconds:0})).trial;assert.equal(changed.assumptions.holdSeconds,300);
+ now=record.exitDueAt+61000;price=3;await paper(req('/api/paper/observe'),env,'two@example.test');
+ record=(await paper(req('/api/paper','GET'),env,'two@example.test')).trials[0];assert.equal(record.status,'closed');assert.equal(record.exit.method,'planned');assert.equal(record.exit.delaySeconds,61);assert.ok(record.exit.pnl>0);
+ assert.equal((await paper(req(),env,'one@example.test',body)).trial.revision,record.revision);
+ assert.equal(db.prepare("SELECT count(*) AS n FROM activity WHERE action='recorded planned paper exit'").get().n,1);
+});
+
+test('missed planned exits persist without fetching historical replacements and do not become cancellations',async t=>{
+ const {db,env}=database();t.after(()=>db.close());let now=start,calls=0;
+ t.mock.method(Date,'now',()=>now);t.mock.method(globalThis,'fetch',async()=>{calls++;return Response.json(provider());});
+ const first=(await paper(req(),env,'one@example.test',{...input(),holdSeconds:300})).trial;
+ const second=(await paper(req(),env,'one@example.test',{...input(),holdSeconds:300})).trial;
+ now+=61000;await paper(req('/api/paper/observe'),env,'one@example.test');
+ let rows=(await paper(req('/api/paper','GET'),env,'one@example.test')).trials;
+ now=rows[0].exitDeadlineAt+1;const before=calls;
+ const virtual=(await paper(req('/api/paper','GET'),env,'one@example.test')).trials;assert.ok(virtual.every(r=>r.status==='missed_exit'&&r.currentMark===null&&r.exit===null));
+ const cancel=rows.find(r=>r.id===second.id);const ended=(await paper(req('/api/paper/'+second.id+'/cancel'),env,'one@example.test',{revision:cancel.revision,reason:'Synthetic missed window'})).trial;assert.equal(ended.status,'missed_exit');
+ const observed=await paper(req('/api/paper/observe'),env,'one@example.test');assert.equal(observed.missedExits,1);assert.equal(calls,before);
+ const saved=JSON.parse(db.prepare('SELECT payload FROM paper_trials WHERE id=?').get(first.id).payload);assert.equal(saved.status,'missed_exit');assert.equal(saved.exit,null);
+});
+
+test('saved buy evidence is exact, server-owned and immutable after alert retention expires',async t=>{
+ const {db,env}=database();t.after(()=>db.close());let now=start,calls=0;
+ t.mock.method(Date,'now',()=>now);t.mock.method(globalThis,'fetch',async()=>{calls++;return Response.json(provider());});
+ const id='a'.repeat(64),evidence={chain:'solana',contract,pool,provider:'GeckoTerminal',token:{chain:'solana',contract,pool,sourceUrl:'https://www.geckoterminal.com/solana/pools/'+pool},trade:{side:'buy',usd:1500,sender:'6'.repeat(32),tx:'7'.repeat(88),id:'synthetic-event',time:new Date(start-30000).toISOString(),earlyPoolBuy:true,poolAgeSeconds:100},fetchedAt:new Date(start).toISOString(),rule:{minUsd:1000,early:true,followed:false},coverage:{complete:false}};
+ db.prepare('INSERT INTO buy_alerts (id,detected,seen,payload) VALUES (?,?,0,?)').run(id,start,JSON.stringify(evidence));
+ await assert.rejects(paper(req(),env,'one@example.test',{...input(),tag:'large_buy',contract:quoteToken,buyAlertId:id}),{status:400});
+ await assert.rejects(paper(req(),env,'one@example.test',{...input(),buyAlertId:id}),{status:400});assert.equal(calls,0);
+ const body={...input(),tag:'large_buy',buyAlertId:id,holdSeconds:300,sourceBuy:{trade:{usd:1e9}}},created=(await paper(req(),env,'one@example.test',body)).trial;
+ assert.equal(created.sourceBuy.trade.usd,1500);assert.equal(created.sourceBuy.trade.sender,evidence.trade.sender);assert.equal(created.entry,null);assert.equal(created.seed.fetchedAt,new Date(now).toISOString());
+ db.prepare('DELETE FROM buy_alerts WHERE id=?').run(id);now+=8*86400000;
+ const retry=(await paper(req(),env,'one@example.test',body)).trial;assert.equal(retry.sourceBuy.trade.usd,1500);assert.equal(calls,1);
+ await assert.rejects(paper(req(),env,'one@example.test',{...body,buyAlertId:'b'.repeat(64)}),{status:409});
+ await assert.rejects(paper(req(),env,'one@example.test',{...body,id:crypto.randomUUID()}),{status:409});
+});
+
+
+test('due planned exits take sampling priority over ordinary marks while the four-trial bound holds',async t=>{
+ const {db,env}=database();t.after(()=>db.close());const now=start+600000;t.mock.method(Date,'now',()=>now);t.mock.method(globalThis,'fetch',async()=>Response.json(provider()));
+ for(let i=0;i<6;i++){
+  const initial=trial();if(i===5)initial.assumptions.holdSeconds=300;
+  const opened=advancePaper(initial,snapshot(start+60000),start+60000);
+  if(i===5){opened.exitDueAt=now-1000;opened.exitDeadlineAt=now+299000;}
+  db.prepare('INSERT INTO paper_trials (id,chain,contract,pool,status,author,created,eligible,updated,revision,payload) VALUES (?,?,?,?,?,?,?,?,?,1,?)').run(opened.id,'solana',contract,pool,'open','qa@example.test',start,start+60000,start+i,JSON.stringify(opened));
+ }
+ const observed=await paper(req('/api/paper/observe'),env,'qa@example.test');assert.equal(observed.results.length,4);
+ const rows=(await paper(req('/api/paper','GET'),env,'qa@example.test')).trials;
+ assert.equal(rows.find(r=>r.assumptions.holdSeconds===300).status,'closed');assert.equal(rows.filter(r=>r.status==='open').length,5);
+});

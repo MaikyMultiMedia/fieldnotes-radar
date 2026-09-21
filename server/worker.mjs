@@ -82,7 +82,7 @@ async function loadRelease() {
     const r=await fetch(base+'/workspace-release.json', {signal:AbortSignal.timeout(3500),cache:'no-store'});
     if(!r.ok) throw Error('Release unavailable');
     const data=await r.json();
-    if(data.apiVersion!==10||!/^([a-f0-9]{40})$/.test(data.commit)||!data.assets) throw Error('Incompatible release');
+    if(data.apiVersion!==11||!/^([a-f0-9]{40})$/.test(data.commit)||!data.assets) throw Error('Incompatible release');
     if(Object.values(files).some(([f])=>!/^[a-f0-9]{64}$/.test(data.assets[f]||''))) throw Error('Incomplete release');
     let contents=verifiedReleases.get(data.commit);
     if(!contents){

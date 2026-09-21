@@ -92,3 +92,7 @@ Raydium documents public, unauthenticated REST reads and a read-only quote phase
 - Official metadata path reference: https://github.com/raydium-io/raydium-sdk-V2/blob/master/src/api/url.ts
 
 Only the public input contract, hypothetical amount, fixed USDC output contract and chosen slippage go upstream. No cookies, user identity, balance, wallet, notes or referral address is sent. Only allowlisted numeric quote evidence and route identities are retained privately. No transaction builder, serialized transaction, signing or send endpoint is used. This does not verify Fomo availability, token transferability, actual execution or net proceeds after all fees. The selected research chart pool may differ from the route. No public redistribution is enabled.
+
+## Planned paper observations
+
+Planned exits reuse the existing authenticated exact-pool price reads, cache and free request budget. They add no source, entitlement, personal holdings access or order execution. Linking a buy observation copies existing bounded public-swap evidence into a private trial; this evidence survives the alert inbox's shorter retention. Only public token/pool identifiers are sent upstream. Fixed horizons reduce discretionary exit timing but do not establish an unbiased cohort, complete collection or verified execution returns. See WORKSPACE.md for missed-window handling and visibility limits.

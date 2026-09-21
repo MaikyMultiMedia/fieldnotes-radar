@@ -3,6 +3,14 @@ import {address,market} from './market.mjs';
 const fail=(message,status=400)=>Object.assign(new Error(message),{status});
 const hash=async value=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value))),b=>b.toString(16).padStart(2,'0')).join('');
 const WEEK=7*86400000;
+export async function savedBuyEvidence(env,id,identity){
+  if(!/^[a-f0-9]{64}$/.test(id||''))throw fail('Choose a saved buy alert.');
+  const now=Date.now(),row=await env.DB.prepare('SELECT id,detected,payload FROM buy_alerts WHERE id=? AND detected>=? AND detected<=?').bind(id,now-WEEK,now).first();
+  if(!row)throw fail('This buy alert is no longer retained. Refresh the alert inbox.',409);
+  const a=JSON.parse(row.payload),t=a.trade;
+  if(['chain','contract','pool'].some(k=>a[k]!==identity[k]||a.token?.[k]!==identity[k])||a.provider!=='GeckoTerminal'||t?.side!=='buy'||!Number.isFinite(t.usd)||t.usd<=0)throw fail('The buy evidence does not match this exact token and pool.');
+  return {id:row.id,chain:a.chain,contract:a.contract,pool:a.pool,provider:a.provider,detected:row.detected,fetchedAt:a.fetchedAt,detailsFetchedAt:a.detailsFetchedAt,latencySeconds:a.latencySeconds,trade:{id:t.id,tx:t.tx,time:t.time,sender:t.sender,usd:t.usd,earlyPoolBuy:t.earlyPoolBuy,poolAgeSeconds:t.poolAgeSeconds},rule:a.rule,coverage:a.coverage,sourceUrl:a.token.sourceUrl};
+}
 const identity=r=>new URLSearchParams({chain:r.chain,contract:r.contract,pool:r.pool});
 export function alertSettings(input){
   const chain=input.chain,contract=address(chain,input.contract),pool=address(chain,input.pool);
