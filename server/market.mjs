@@ -90,17 +90,21 @@ async function reserve(env,time){
   if(!budget||budget.calls>8||budget.blocked_until>time)throw issue('Market refresh limit reached. Try again in a minute.',429);
 }
 function envelope(payload,fetched,status,error=null){return{...payload,status,provider:'GeckoTerminal',fetchedAt:new Date(fetched*1000).toISOString(),sourceObservedAt:null,refreshSeconds:60,error};}
+export function retryDelay(value,now){
+  const seconds=typeof value==='string'&&/^\d+$/.test(value.trim())?Number(value):Math.ceil((Date.parse(value)-now*1000)/1000);
+  return Number.isFinite(seconds)?Math.min(3600,Math.max(60,seconds)):60;
+}
 async function cached(env,key,path,convert){
   const time=Math.floor(Date.now()/1000);
   const old=await env.DB.prepare('SELECT payload,fetched FROM market_cache WHERE key=?').bind(key).first();
-  if(old&&time-old.fetched<60)return envelope(JSON.parse(old.payload),old.fetched,'fresh');
+  if(old&&time>=old.fetched&&time-old.fetched<60)return envelope(JSON.parse(old.payload),old.fetched,'fresh');
   if(inflight.has(key))return inflight.get(key);
   const pending=(async()=>{
     try{
       await reserve(env,time);
-      const response=await fetch(ROOT+path,{headers:{Accept:'application/json;version=20230302'},signal:AbortSignal.timeout(8000)});
+      const response=await fetch(ROOT+path,{headers:{Accept:'application/json;version=20230302'},redirect:'error',signal:AbortSignal.timeout(8000)});
       if(response.status===429){
-        const retry=Math.min(3600,Math.max(60,Number(response.headers.get('retry-after'))||60));
+        const retry=retryDelay(response.headers.get('retry-after'),time);
         await env.DB.prepare("UPDATE market_budget SET blocked_until=? WHERE id='provider'").bind(time+retry).run();
         throw issue('GeckoTerminal is rate-limiting requests. Try again shortly.',429);
       }
@@ -112,7 +116,7 @@ async function cached(env,key,path,convert){
       ]);
       return envelope(payload,fetched,'fresh');
     }catch(e){
-      if(old&&time-old.fetched<=900)return envelope(JSON.parse(old.payload),old.fetched,'stale',e.status?e.message:'Refresh failed. Showing the last successful observation.');
+      if(old&&time>=old.fetched&&time-old.fetched<=900)return envelope(JSON.parse(old.payload),old.fetched,'stale',e.status?e.message:'Refresh failed. Showing the last successful observation.');
       throw issue(e.status?e.message:'Market data could not be refreshed. Please try again.',e.status||502);
     }finally{inflight.delete(key);}
   })();
@@ -150,7 +154,8 @@ export async function market(request,env) {
       return {...result,poolDetails:details.pools[0],detailsFetchedAt:details.fetchedAt,detailsStatus:details.status};
     }
     const path='/networks/'+network+'/pools/'+pool+'/ohlcv/'+(period==='5m'?'minute':'hour')+'?aggregate='+(period==='5m'?'5':'1')+'&limit=72&currency=usd&token='+token;
-    return cached(env,path,path,p=>({chain,pool,contract:token,period,poolDetails:details.pools[0],detailsFetchedAt:details.fetchedAt,detailsStatus:details.status,candles:normalizeChart(p)}));
+    const result=await cached(env,path,path,p=>({chain,pool,contract:token,period,candles:normalizeChart(p)}));
+    return {...result,poolDetails:details.pools[0],detailsFetchedAt:details.fetchedAt,detailsStatus:details.status};
   }
   throw issue('Not found',404);
 }

@@ -11,4 +11,17 @@ function prepare(sql,params=[]){return{bind(...v){return prepare(sql,v)},async f
 return{db,env:{BIRDEYE_API_KEY:'synthetic-test-key',DB:{prepare,async batch(ps){const rows=[];for(const p of ps)rows.push(await p.run());return rows;}}}};}
 test('unconfigured ranking never invents results or sends requests',async t=>{let calls=0;t.mock.method(globalThis,'fetch',async()=>{calls++;throw Error('unexpected');});for(const w of ['24h','48h','72h','7d','30d']){const data=await leaderboard(request(w),{});assert.equal(data.status,'not_configured');assert.deepEqual(data.rows,[]);assert.equal(data.fetchedAt,null);}assert.equal(calls,0);await assert.rejects(leaderboard(request('bad'),{}),{status:400});});
 test('profit records reject unknown PnL, duplicates and out-of-scope wallets',()=>{const data=normalizeLeaders({success:true,data:[row(0),row(500),{...row(900),owner:'4'.repeat(32)}, {...row(null),owner:'5'.repeat(32)},{...row(300),owner:'6'.repeat(32),total_value:99999}]});assert.equal(data.length,2);assert.equal(data[0].realizedPnl,900);assert.equal(data[1].realizedPnl,0);assert.equal(data[0].unrealizedPnl,null);assert.throws(()=>normalizeLeaders({success:false,data:[]}));});
+
+test('rankings reject future receipts and use an origin-bound request with date cooldowns',async t=>{
+  const {db,env}=database();t.after(()=>db.close());let calls=0,now=1800000000000;
+  t.mock.method(Date,'now',()=>now);
+  t.mock.method(globalThis,'fetch',async(url,options)=>{calls++;assert.equal(options.redirect,'error');return Response.json({success:true,data:[row()]});});
+  await leaderboard(request('24h'),env);
+  db.prepare('UPDATE market_cache SET fetched=?').run(now/1000+3600);
+  await leaderboard(request('24h'),env);assert.equal(calls,2);
+  db.prepare('UPDATE market_cache SET fetched=?').run(now/1000+3600);
+  t.mock.method(globalThis,'fetch',async()=>{calls++;return new Response('private-body',{status:429,headers:{'retry-after':new Date(now+180000).toUTCString()}});});
+  await assert.rejects(leaderboard(request('24h'),env),{status:429});now+=120000;
+  await assert.rejects(leaderboard(request('24h'),env),{status:429});assert.equal(calls,3);
+});
 test('ranking uses exact requested interval and WAC, caches and preserves stale timestamps',async t=>{const {db,env}=database();t.after(()=>db.close());let calls=0;t.mock.method(globalThis,'fetch',async(url,options)=>{calls++;const u=new URL(url);assert.equal(u.origin,'https://public-api.birdeye.so');assert.equal(u.searchParams.get('interval'),'2d');assert.equal(u.searchParams.get('sort_by'),'realized_pnl');assert.equal(u.searchParams.get('pnl_method'),'wac');assert.equal(options.headers['X-API-KEY'],'synthetic-test-key');return Response.json({success:true,data:[row()]});});const first=await leaderboard(request('48h'),env);assert.equal(first.rows.length,1);assert.equal(first.feesVerified,false);assert.ok(!JSON.stringify(first).includes('synthetic-test-key'));await leaderboard(request('48h'),env);assert.equal(calls,1);const time=Math.floor(Date.now()/1000)-301;db.prepare('UPDATE market_cache SET fetched=?').run(time);t.mock.method(globalThis,'fetch',async()=>{throw Error('private-provider-body');});const stale=await leaderboard(request('48h'),env);assert.equal(stale.status,'stale');assert.equal(stale.fetchedAt,new Date(time*1000).toISOString());assert.ok(!stale.error.includes('private-provider'));db.prepare('UPDATE market_cache SET fetched=?').run(time-4000);await assert.rejects(leaderboard(request('48h'),env),{status:502});});
