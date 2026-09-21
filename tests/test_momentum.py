@@ -53,3 +53,17 @@ class MomentumTests(unittest.TestCase):
         a=cap_signal(sample(0,3000,2),sample(5,10000,2))
         b=sample(10,11000,2);b['checks']['market']['liquidity_usd']=None
         self.assertNotIn('entry_at',paper_update(a,[b],ts(b['observed_at'])+100))
+
+class LiveCapParityTests(unittest.TestCase):
+    def test_shared_live_cap_threshold_fixtures(self):
+        import json
+        from pathlib import Path
+        from datetime import datetime, timedelta, timezone
+        start=datetime(2026,9,1,tzinfo=timezone.utc)
+        rows=json.loads((Path(__file__).parent/'fixtures'/'cap-thresholds.json').read_text(encoding='utf-8-sig'))
+        for row in rows:
+            with self.subTest(row=row['name']):
+                before=sample(0,row['before'],2);after=sample(0,row['after'],2)
+                before['observed_at']=start.isoformat();after['observed_at']=(start+timedelta(seconds=row['seconds'])).isoformat()
+                result=cap_signal(before,after)
+                self.assertEqual(result['direction'] if result else None,row['expected'])

@@ -42,3 +42,11 @@ export const buyAlertRules = sqliteTable('buy_alert_rules', {
 export const buyAlerts = sqliteTable('buy_alerts', {
   id: text('id').primaryKey(), detected: integer('detected').notNull(), seen: integer('seen').notNull().default(0), payload: text('payload').notNull(),
 }, t => [index('buy_alerts_detected_idx').on(t.detected)]);
+
+export const capObservations = sqliteTable('cap_observations', {
+  id: text('id').primaryKey(), identity: text('identity').notNull(), fetched: integer('fetched').notNull(), payload: text('payload').notNull(),
+}, t => [index('cap_observations_identity_fetched_idx').on(t.identity,t.fetched)]);
+export const capSignals = sqliteTable('cap_signals', {
+  id: text('id').primaryKey(), identity: text('identity').notNull(), chain: text('chain').notNull(), direction: text('direction').notNull(),
+  after: integer('after').notNull(), detected: integer('detected').notNull(), payload: text('payload').notNull(),
+}, t => [index('cap_signals_identity_direction_after_idx').on(t.identity,t.direction,t.after),index('cap_signals_detected_idx').on(t.detected)]);
