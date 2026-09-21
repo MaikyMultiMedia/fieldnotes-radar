@@ -1,4 +1,5 @@
 import {walletResearch} from './wallet-research.mjs';
+import {exitQuote} from './exit-quotes.mjs';
 import { embedded, sourceCommit } from './embedded.mjs';
 import { buyAlerts } from './buy-alerts.mjs';
 import { capRadar } from './cap-momentum.mjs';
@@ -81,7 +82,7 @@ async function loadRelease() {
     const r=await fetch(base+'/workspace-release.json', {signal:AbortSignal.timeout(3500),cache:'no-store'});
     if(!r.ok) throw Error('Release unavailable');
     const data=await r.json();
-    if(data.apiVersion!==9||!/^([a-f0-9]{40})$/.test(data.commit)||!data.assets) throw Error('Incompatible release');
+    if(data.apiVersion!==10||!/^([a-f0-9]{40})$/.test(data.commit)||!data.assets) throw Error('Incompatible release');
     if(Object.values(files).some(([f])=>!/^[a-f0-9]{64}$/.test(data.assets[f]||''))) throw Error('Incomplete release');
     let contents=verifiedReleases.get(data.commit);
     if(!contents){
@@ -148,6 +149,7 @@ async function handle(request,env) {
   if(path==='/api/radar'&&request.method==='POST')return json(await capRadar(request,env,await body(request)));
   if(path==='/api/paper'||path.startsWith('/api/paper/'))return json(await paper(request,env,user,request.method==='POST'?await body(request):null));
   if(path==='/api/token-checks'&&request.method==='GET')return json(await tokenChecks(request,env));
+  if(path==='/api/market/exit-quote'&&request.method==='GET')return json(await exitQuote(request,env));
   if(path==='/api/intelligence/wallet'&&request.method==='GET')return json(await walletResearch(request,env));
   if(path==='/api/intelligence/leaders'&&request.method==='GET')return json(await leaderboard(request,env));
   if(path==='/api/logout'&&request.method==='POST') {

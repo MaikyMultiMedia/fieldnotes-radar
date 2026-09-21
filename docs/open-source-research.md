@@ -17,3 +17,7 @@ GoPlus token checks use its official documented HTTP service directly; no SDK or
 ## GMGN official client — protocol reference
 
 Reviewed https://github.com/GMGNAI/gmgn-skills (MIT, copyright GMGN). Its documented read-only authentication and wallet_profits contract informed an original small server adapter; no CLI, third-party skills or signing dependencies were installed or copied. GMGN labels its public demo access testing-only and requires a personal key for production. Provider profit estimates do not establish Fomo identities, execution quality or a validated strategy.
+
+## Raydium public quote protocol
+
+Reviewed the official Raydium REST and Trade API docs and SDK endpoint constants. The SDK is GPL-3.0 (https://github.com/raydium-io/raydium-sdk-V2/blob/master/LICENSE); no SDK code, dependency, transaction builder or signing example is copied or installed. An original small HTTP adapter uses the published read-only metadata/quote contracts. Protocol access does not imply a separate redistribution license. Sources: https://docs.raydium.io/sdk-api/rest-api and https://docs.raydium.io/sdk-api/trade-api.
