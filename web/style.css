@@ -35,3 +35,5 @@ body{font-size:15px}h1{font-family:var(--font);font-weight:650;font-size:30px;le
 #interactive-chart table{border-collapse:collapse;margin:0;text-align:initial}
 #interactive-chart td,#interactive-chart th,#interactive-chart tr{padding:0;border:0;background:none;font-size:inherit}
 @media(max-width:760px){#interactive-chart{height:280px;min-height:280px}}
+
+.flow-amount-form{display:flex;align-items:end;gap:10px}.flow-amount-form .field{max-width:185px}@media(max-width:760px){.flow-amount-form{width:100%}.flow-amount-form .field{flex:1;max-width:none;width:auto}}
