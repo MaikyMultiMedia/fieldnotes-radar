@@ -71,3 +71,9 @@ test('shared report summaries apply across browser reloads and distinguish other
  assert.equal(evaluate('researchAssessment({...pools[0],contract:"other"},fresh,now).candidate'),true);
  evaluate('state=null');
 });
+
+test('cap signal text preserves exact evidence and linked paper records remain distinct from starting prices',()=>{
+ const signal={id:'a'.repeat(64),chain:'solana',contract:'3'.repeat(32),pool:'4'.repeat(32),direction:'rise',changePct:100,delta:4000,capBefore:4000,capAfter:8000,beforeReceived:now-60000,afterReceived:now,detected:now,elapsedSeconds:60,provider:'GeckoTerminal',token:{symbol:'SYNTHETIC <QA>',sourceUrl:'https://www.geckoterminal.com/solana/pools/'+'4'.repeat(32)}};
+ context.capFixture=signal;const text=evaluate('capText(capFixture)');assert.ok(text.split('\n').length>=12);assert.ok(text.includes(signal.contract));assert.ok(text.includes('Receipt interval: 60 seconds'));assert.ok(text.includes('provider observation times unknown'));
+ const html=evaluate('capEvidence(capFixture)');assert.ok(html.includes('SYNTHETIC &lt;QA&gt;'));assert.ok(html.includes('Exact provider observation times are unknown'));
+});

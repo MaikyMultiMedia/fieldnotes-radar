@@ -1,9 +1,10 @@
 import {address,number,market} from './market.mjs';
+import {signalEvidence} from './cap-momentum.mjs';
 import {savedChecks} from './token-checks.mjs';
 const fail=(message,status=400)=>Object.assign(new Error(message),{status});
 const finite=n=>typeof n==='number'&&Number.isFinite(n);
 const iso=at=>new Date(at).toISOString();
-export const PAPER_TAGS=['manual','shortlist','large_buy'];
+export const PAPER_TAGS=['manual','shortlist','large_buy','cap_momentum'];
 export function assumptions(input){
   const range=(key,min,max)=>{const n=number(input[key]);if(n===null||n<min||n>max)throw fail('Invalid paper assumption: '+key+'.');return n;};
   const value={outlay:range('outlay',1,10000),feePct:range('feePct',0,10),fixedFee:range('fixedFee',0,100),slippagePct:range('slippagePct',0,30),delaySeconds:range('delaySeconds',60,300)};
@@ -90,11 +91,14 @@ export async function paper(request,env,user,input=null){
     const tag=input.tag,thesis=typeof input.thesis==='string'?input.thesis.trim():'';
     if(!PAPER_TAGS.includes(tag)||!thesis||thesis.length>2000)throw fail('Choose a research reason and write a thesis of 1–2,000 characters.');
     const prior=await get(env,input.id);
-    if(prior){if(prior.chain!==chain||prior.contract!==contract||prior.pool!==pool||prior.tag!==tag||prior.thesis!==thesis||JSON.stringify(prior.assumptions)!==JSON.stringify(a))throw fail('This request ID already belongs to another trial.',409);return {trial:paperView(prior,now)};}
+    if(prior){if(prior.chain!==chain||prior.contract!==contract||prior.pool!==pool||prior.tag!==tag||(prior.sourceSignal?.id||null)!==(input.signalId||null)||prior.thesis!==thesis||JSON.stringify(prior.assumptions)!==JSON.stringify(a))throw fail('This request ID already belongs to another trial.',409);return {trial:paperView(prior,now)};}
+    const sourceSignal=tag==='cap_momentum'?await signalEvidence(env,input.signalId,{chain,contract,pool}):null;
+    if(tag!=='cap_momentum'&&input.signalId)throw fail('Use the market-cap signal reason for linked evidence.');
     const count=await env.DB.prepare("SELECT count(*) AS total,sum(CASE WHEN status='open' OR (status='waiting' AND eligible+300000>=?) THEN 1 ELSE 0 END) AS active FROM paper_trials").bind(now).first();
     if(count.total>=200||count.active>=20)throw fail('Paper journal limit reached: 200 total trials and 20 active. Close or cancel active trials first.');
     const t={id:input.id,chain,contract,pool,tag,thesis,reflection:'',assumptions:a,createdAt:now,eligibleAt:now+a.delaySeconds*1000,deadlineAt:now+(a.delaySeconds+300)*1000,author:user,status:'waiting',entry:null,lastMark:null,exit:null,marks:[],observations:0,highestObserved:null,lowestObserved:null,lastCheck:null};
     const q=await quote(request,env,t),problem=quoteProblem(q,t,Date.now());if(problem)throw fail(problem,422);
+    t.sourceSignal=sourceSignal;
     t.tokenChecks=await savedChecks(env,chain,contract,Date.now());
     t.symbol=q.poolDetails.symbol;t.name=q.poolDetails.name;t.seed={price:q.poolDetails.price,liquidity:q.poolDetails.liquidity,marketCap:q.poolDetails.marketCap,volume24h:q.poolDetails.volume24h,change5m:q.poolDetails.change5m,fetchedAt:q.fetchedAt,sourceUrl:q.poolDetails.sourceUrl,provider:q.provider};
     const r=await env.DB.prepare('INSERT OR IGNORE INTO paper_trials (id,chain,contract,pool,status,author,created,eligible,updated,revision,payload) VALUES (?,?,?,?,?,?,?,?,?,1,?)').bind(t.id,chain,contract,pool,'waiting',user,now,t.eligibleAt,now,JSON.stringify(t)).run();

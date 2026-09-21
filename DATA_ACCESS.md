@@ -63,3 +63,7 @@ Live responses were checked September 21, 2026 for Solana, Ethereum, Base and BN
 ## Private saved buy observations
 
 Saved buy rules reuse the existing public pool/trade API and free shared request budget. Only selected public chain/contract/pool identifiers go upstream. New matches are retained privately with source, block and detection times for up to seven days (latest 500). The visible Alerts page drives collection; no scheduler, paid source or background notification service is provisioned. Detailed sampling and duplicate-suppression limits appear in WORKSPACE.md and the interface.
+
+## Received market-cap signals
+
+The private radar reuses its existing GeckoTerminal response to persist comparable exact-pool cap estimates and detect numerical changes. Receipt times are explicitly distinct from unknown provider observation times. Ten-minute observation storage and a bounded 24-hour signal archive support comparisons and private paper evidence. This adds no upstream endpoint, paid data source, holder-count claim or Fomo connection. The original public demo remains synthetic; see WORKSPACE.md for thresholds, retention, sampling and paper-link details.

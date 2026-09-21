@@ -1,0 +1,12 @@
+[
+ {"name":"rise boundary","before":4000,"after":6000,"seconds":300,"expected":"rise"},
+ {"name":"fall boundary","before":10000,"after":7000,"seconds":300,"expected":"fall"},
+ {"name":"absolute change below boundary","before":1000,"after":2999,"seconds":1,"expected":null},
+ {"name":"rise percent below boundary","before":10000,"after":14999,"seconds":1,"expected":null},
+ {"name":"fall percent below boundary","before":10000,"after":7001,"seconds":1,"expected":null},
+ {"name":"too old","before":4000,"after":8000,"seconds":301,"expected":null},
+ {"name":"same snapshot","before":4000,"after":8000,"seconds":0,"expected":null},
+ {"name":"reverse time","before":4000,"after":8000,"seconds":-1,"expected":null},
+ {"name":"missing cap","before":null,"after":8000,"seconds":30,"expected":null},
+ {"name":"zero cap","before":0,"after":8000,"seconds":30,"expected":null}
+]
