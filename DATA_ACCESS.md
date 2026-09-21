@@ -59,3 +59,7 @@ GoPlus describes its Security API as open and license-free, and its support page
 - Chain IDs: https://docs.gopluslabs.io/reference/response-details-9
 
 Live responses were checked September 21, 2026 for Solana, Ethereum, Base and BNB Chain. Reports are attributed third-party findings with unknown observation time, not independently verified facts. Only allowlisted controls, rates and a bounded public holder sample are cached. Solana token accounts are not treated as owners or profitable wallets. Cached summaries influence the existing research shortlist, and a fresh compact report may be retained privately with a paper trial. No notes, users, credentials or personal holdings are sent to GoPlus.
+
+## Private saved buy observations
+
+Saved buy rules reuse the existing public pool/trade API and free shared request budget. Only selected public chain/contract/pool identifiers go upstream. New matches are retained privately with source, block and detection times for up to seven days (latest 500). The visible Alerts page drives collection; no scheduler, paid source or background notification service is provisioned. Detailed sampling and duplicate-suppression limits appear in WORKSPACE.md and the interface.

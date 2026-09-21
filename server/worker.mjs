@@ -1,4 +1,5 @@
 import { embedded, sourceCommit } from './embedded.mjs';
+import { buyAlerts } from './buy-alerts.mjs';
 import { paper } from './paper.mjs';
 import { tokenChecks, checkSummaries } from './token-checks.mjs';
 import { leaderboard } from './intelligence.mjs';
@@ -78,7 +79,7 @@ async function loadRelease() {
     const r=await fetch(base+'/workspace-release.json', {signal:AbortSignal.timeout(3500),cache:'no-store'});
     if(!r.ok) throw Error('Release unavailable');
     const data=await r.json();
-    if(data.apiVersion!==5||!/^([a-f0-9]{40})$/.test(data.commit)||!data.assets) throw Error('Incompatible release');
+    if(data.apiVersion!==6||!/^([a-f0-9]{40})$/.test(data.commit)||!data.assets) throw Error('Incompatible release');
     if(Object.values(files).some(([f])=>!/^[a-f0-9]{64}$/.test(data.assets[f]||''))) throw Error('Incomplete release');
     let contents=verifiedReleases.get(data.commit);
     if(!contents){
@@ -141,6 +142,7 @@ async function handle(request,env) {
   const user=await currentUser(request,env);
   if(!user) return json({error:'Please sign in.'},401);
   if(request.method==='GET'&&(path==='/api/market'||path==='/api/market/chart'||path==='/api/market/trades')) return json(await market(request,env));
+  if(path==='/api/alerts'||path.startsWith('/api/alerts/'))return json(await buyAlerts(request,env,user,request.method==='POST'?await body(request):null));
   if(path==='/api/paper'||path.startsWith('/api/paper/'))return json(await paper(request,env,user,request.method==='POST'?await body(request):null));
   if(path==='/api/token-checks'&&request.method==='GET')return json(await tokenChecks(request,env));
   if(path==='/api/intelligence/leaders'&&request.method==='GET')return json(await leaderboard(request,env));
