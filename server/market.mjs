@@ -136,13 +136,14 @@ export async function market(request,env) {
     }else path='/networks/'+network+'/'+(mode==='new'?'new_pools':'trending_pools')+'?include=base_token,quote_token,dex';
     return cached(env,path,path,p=>({chain,mode,pools:normalizePools(p,chain)}));
   }
-  if(url.pathname==='/api/market/chart'||url.pathname==='/api/market/trades'){
+  if(url.pathname==='/api/market/chart'||url.pathname==='/api/market/trades'||url.pathname==='/api/market/pool'){
     const pool=address(chain,q.get('pool')),token=address(chain,q.get('contract'));
     const period=q.get('period')||'5m';
     if(!['5m','1h'].includes(period))throw issue('Unknown chart period.');
     const poolPath='/networks/'+network+'/pools/'+pool+'?include=base_token,quote_token,dex';
     const details=await cached(env,poolPath+':'+token,poolPath,p=>({pools:normalizePools({...p,data:Array.isArray(p.data)?p.data:[p.data]},chain,token)}));
     if(!details.pools.length||!same(chain,details.pools[0].pool,pool))throw issue('The token does not belong to this pool.',400);
+    if(url.pathname==='/api/market/pool')return {...details,chain,pool,contract:token,poolDetails:details.pools[0]};
     if(url.pathname==='/api/market/trades'){
       const path='/networks/'+network+'/pools/'+pool+'/trades';
       const result=await cached(env,path+':'+token,path,p=>({chain,pool,contract:token,...normalizeTrades(p,chain,token,details.pools[0].poolCreatedAt)}));

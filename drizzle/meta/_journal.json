@@ -22,6 +22,13 @@
       "when": 1789970621699,
       "tag": "0002_flaky_silverclaw",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1789972064849,
+      "tag": "0003_charming_infant_terrible",
+      "breakpoints": true
     }
   ]
 }
