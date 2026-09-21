@@ -13,3 +13,5 @@ if(fs.existsSync('drizzle'))fs.cpSync('drizzle','dist/.openai/drizzle',{recursiv
 console.log('Worker and embedded fallback built.');
 
 fs.copyFileSync('server/intelligence.mjs','dist/server/intelligence.mjs');
+
+fs.copyFileSync('server/paper.mjs','dist/server/paper.mjs');

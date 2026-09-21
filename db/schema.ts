@@ -28,3 +28,9 @@ export const wallets = sqliteTable('wallets', {
   label: text('label').notNull(), author: text('author').notNull(), updated: integer('updated').notNull(),
   revision: integer('revision').notNull().default(1),
 }, t => [index('wallets_updated_idx').on(t.updated)]);
+
+export const paperTrials = sqliteTable('paper_trials', {
+  id: text('id').primaryKey(), chain: text('chain').notNull(), contract: text('contract').notNull(), pool: text('pool').notNull(),
+  status: text('status').notNull(), author: text('author').notNull(), created: integer('created').notNull(), eligible: integer('eligible').notNull(), updated: integer('updated').notNull(),
+  revision: integer('revision').notNull().default(1), payload: text('payload').notNull(),
+}, t => [index('paper_trials_created_idx').on(t.created),index('paper_trials_status_eligible_idx').on(t.status,t.eligible)]);

@@ -41,3 +41,7 @@ The original permission-request draft was never sent. A different provider or wi
 - Ranking interval/sort release: https://data.birdeye.so/docs/changelog/20260910-release-wallet-leaderboard-filters
 
 Public swap observations are cached only in the private workspace with one-day pruning on successful fetches. The free feed cannot calculate complete wallet performance, identify beneficial owners, or establish Fomo profiles. The optional ranking adapter is disabled without an operator-configured key; the user chose free features first. No paid access has been provisioned. See WORKSPACE.md for precise cohort, window, caching and provenance restrictions.
+
+## Private paper observations
+
+The paper journal reuses the existing exact-pool price endpoint, cache and shared free request budget. Only public chain and pool identifiers are sent upstream. Its immutable starting snapshot, hypothetical assumptions, sampled marks, thesis and takeaways persist privately in Sites D1, outside the short-lived market cache. No new provider, paid entitlement, Fomo API or execution access is introduced. The journal uses snapshot receipt times and illustrative costs; simulated proceeds are not verified fills or realized trading profits.
