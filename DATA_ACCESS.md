@@ -67,3 +67,13 @@ Saved buy rules reuse the existing public pool/trade API and free shared request
 ## Received market-cap signals
 
 The private radar reuses its existing GeckoTerminal response to persist comparable exact-pool cap estimates and detect numerical changes. Receipt times are explicitly distinct from unknown provider observation times. Ten-minute observation storage and a bounded 24-hour signal archive support comparisons and private paper evidence. This adds no upstream endpoint, paid data source, holder-count claim or Fomo connection. The original public demo remains synthetic; see WORKSPACE.md for thresholds, retention, sampling and paper-link details.
+
+## Optional GMGN wallet research
+
+The official GMGN Agent API and MIT-licensed client document a Free tier and read-only wallet-profit reports. A personal API key is required for actual use. Testing-only access returned valid public-address reports for 1d, 7d and 30d on September 21, 2026; this does not verify production entitlement, accounting accuracy or Fomo identity. No personal key is provisioned, and the adapter sends no request when unconfigured. Private use only; no public provider-data redistribution is enabled.
+
+- API overview: https://docs.gmgn.ai/index/gmgn-agent-api
+- Periods, fields, authentication and free limits: https://github.com/GMGNAI/gmgn-skills/blob/main/skills/gmgn-portfolio/SKILL.md
+- Official endpoint contract: https://github.com/GMGNAI/gmgn-skills/blob/main/src/client/OpenApiClient.ts
+
+The server uses only POST /v1/user/wallet_profits on https://openapi.gmgn.ai. This POST reads statistics; it neither submits trades nor signs anything. See WORKSPACE.md for the strict field allowlist, individual-wallet scope, caching and secret setup.

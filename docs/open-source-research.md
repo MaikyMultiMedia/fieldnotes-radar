@@ -13,3 +13,7 @@ Live data uses official documented HTTP interfaces. Private Fomo endpoints, reve
 Official references: https://www.tradingview.com/lightweight-charts/ ; https://github.com/tradingview/lightweight-charts/blob/master/LICENSE ; https://github.com/tradingview/lightweight-charts/blob/master/NOTICE ; https://apiguide.geckoterminal.com/ ; https://data.birdeye.so/docs/data-api/wallet-networth-pnl/get-wallet-v2-leaderboard
 
 GoPlus token checks use its official documented HTTP service directly; no SDK or proprietary detection code is copied. The vendor describes the API as open and license-free (https://www.gopluslabs.io/en/security-api). API service access is distinct from open-sourcing its detection algorithms. The original adapter is intentionally small and pinned to explicit field/network contracts. Solana public RPC documentation was assessed but no public RPC dependency was added: that endpoint is not intended as production infrastructure (https://solana.com/docs/references/clusters).
+
+## GMGN official client — protocol reference
+
+Reviewed https://github.com/GMGNAI/gmgn-skills (MIT, copyright GMGN). Its documented read-only authentication and wallet_profits contract informed an original small server adapter; no CLI, third-party skills or signing dependencies were installed or copied. GMGN labels its public demo access testing-only and requires a personal key for production. Provider profit estimates do not establish Fomo identities, execution quality or a validated strategy.

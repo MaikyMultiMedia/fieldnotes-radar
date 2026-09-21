@@ -21,3 +21,5 @@ fs.copyFileSync('server/token-checks.mjs','dist/server/token-checks.mjs');
 fs.copyFileSync('server/buy-alerts.mjs','dist/server/buy-alerts.mjs');
 
 fs.copyFileSync('server/cap-momentum.mjs','dist/server/cap-momentum.mjs');
+
+fs.copyFileSync('server/wallet-research.mjs','dist/server/wallet-research.mjs');

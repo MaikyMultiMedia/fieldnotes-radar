@@ -77,3 +77,13 @@ test('cap signal text preserves exact evidence and linked paper records remain d
  context.capFixture=signal;const text=evaluate('capText(capFixture)');assert.ok(text.split('\n').length>=12);assert.ok(text.includes(signal.contract));assert.ok(text.includes('Receipt interval: 60 seconds'));assert.ok(text.includes('provider observation times unknown'));
  const html=evaluate('capEvidence(capFixture)');assert.ok(html.includes('SYNTHETIC &lt;QA&gt;'));assert.ok(html.includes('Exact provider observation times are unknown'));
 });
+
+test('wallet reports copy the selected period and preserve losses, missing fields, stale status and source limits',()=>{
+ context.walletFixture={chain:'solana',address:'3'.repeat(32),window:'7d',provider:'GMGN',status:'stale',fetchedAt:new Date(now).toISOString(),sourceUrl:'https://example.test/synthetic-source',report:{realizedPnl:-12.5,realizedCost:100,realizedReturn:-.125,buyCount:0,sellCount:null,unrealizedPnl:0}};
+ const text=evaluate('walletProfitText(walletFixture)');assert.match(text,/Period: 7d/);assert.match(text,/Status: stale/);assert.match(text,/\-\$12\.50/);assert.match(text,/Buys \/ sells: 0 \/ Unknown/);assert.match(text,/Fomo identity are unverified/);
+ evaluate('state={wallets:[]};walletReport.data=walletFixture;walletReport.loading=false;');
+ const html=evaluate('walletProfitBody()');assert.match(html,/Stale report/);assert.match(html,/Current holdings, separate/);assert.match(html,/Refresh report/);
+ evaluate("walletReport.data={status:'not_configured',report:null};");assert.match(evaluate('walletProfitBody()'),/no connected key yet/);
+ evaluate("walletReport.data={status:'fresh',report:null};");assert.match(evaluate('walletProfitBody()'),/does not mean zero profit/);
+ evaluate('state=null;');
+});
