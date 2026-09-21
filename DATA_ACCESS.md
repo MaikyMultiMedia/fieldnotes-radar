@@ -1,6 +1,6 @@
 # Market data access
 
-Reviewed September 20, 2026.
+Reviewed September 21, 2026.
 
 ## Active private Sites integration
 
@@ -13,7 +13,7 @@ The owner authorized live public token data for the two-user research workspace.
 
 Official pages describe differing free limits (10 or 30 calls/minute); this implementation caps upstream attempts at eight/minute across the workspace and respects provider cooldowns. Cache sharing and minute refreshes reduce load. This is a polling research feed, not a real-time execution quote or guaranteed detection latency.
 
-The adapter displays only exact token/pool identities, prices, price changes where supported, pool liquidity, 24-hour pool volume, buy/sell counts, nullable market cap, separate FDV, pool creation time and OHLCV. It does not request wallets, account profiles or holdings. Unknown values remain unknown. The UI's receipt time is not represented as a provider observation timestamp. Pool creation is not token launch evidence, and pool volume is not since-launch volume.
+The adapter displays only exact token/pool identities, prices, price changes where supported, pool liquidity, 24-hour pool volume, buy/sell counts, nullable market cap, separate FDV, pool creation time and OHLCV. The owner also requested public large-buy research: the trades endpoint now reads public transaction sender addresses and token transfers for selected pools. It does not request private account profiles or holdings. Unknown values remain unknown. The UI's receipt time is not represented as a provider observation timestamp. Pool creation is not token launch evidence, and pool volume is not since-launch volume.
 
 Server-side access requires the existing app session. Requests go to the fixed public API origin with public search terms/contracts only; notes, passwords, user identities and session cookies are never forwarded. Short-lived cached responses and rate budgets persist in the Sites database. See WORKSPACE.md for retention, limits and stale-data behavior.
 
@@ -32,3 +32,12 @@ PumpPortal and DEX Screener are not integrated. Earlier restrictions noted for t
 - https://docs.dexscreener.com/api/api-terms-and-conditions
 
 The original permission-request draft was never sent. A different provider or wider public service requires its own access and usage review. No provider permission or commercial license beyond the documented public API access is claimed.
+
+## Public swaps and optional profit intelligence
+
+- Pool trade schema: https://docs.coingecko.com/reference/pool-trades-contract-address
+- Free endpoint verified September 21, 2026: GET /api/v2/networks/solana/pools/{pool}/trades returned up to 300 documented public swaps. Verification records stay outside Git.
+- Official optional profit contract: https://data.birdeye.so/docs/data-api/wallet-networth-pnl/get-wallet-v2-leaderboard
+- Ranking interval/sort release: https://data.birdeye.so/docs/changelog/20260910-release-wallet-leaderboard-filters
+
+Public swap observations are cached only in the private workspace with one-day pruning on successful fetches. The free feed cannot calculate complete wallet performance, identify beneficial owners, or establish Fomo profiles. The optional ranking adapter is disabled without an operator-configured key; the user chose free features first. No paid access has been provisioned. See WORKSPACE.md for precise cohort, window, caching and provenance restrictions.

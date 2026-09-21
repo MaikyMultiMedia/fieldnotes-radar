@@ -37,3 +37,12 @@ test('research shortlist rejects stale, unknown, thin and inactive data',()=>{
  assert.equal(evaluate("researchAssessment({...pools[0],marketCap:null},fresh,now).label"),'Verify supply');
  assert.deepEqual(ids("filterMarkets(pools,{...defaultTokenFilters(),shortlist:true},fresh,now)"),['base:a:one','base:d:four']);
 });
+
+test('large-trade filters preserve unknowns and exact-chain follows',()=>{
+  context.swaps=[{id:'buy',side:'buy',usd:1000,earlyPoolBuy:true,sender:'wallet',chain:'base'},{id:'sell',side:'sell',usd:2000,earlyPoolBuy:false,sender:'wallet',chain:'base'},{id:'unknown',side:'buy',usd:null,earlyPoolBuy:true,sender:'wallet',chain:'base'},{id:'zero',side:'buy',usd:0,earlyPoolBuy:false,sender:'wallet',chain:'solana'}];
+  evaluate("state={wallets:[{address:'wallet',chain:'base'}]};flows.minUsd=0;flows.side='buy';flows.early=false;flows.followed=false;");
+  assert.deepEqual(ids('matchingTrades(swaps)'),['buy','zero']);
+  evaluate('flows.followed=true;');assert.deepEqual(ids('matchingTrades(swaps)'),['buy']);
+  evaluate("flows.side='all';flows.early=true;");assert.deepEqual(ids('matchingTrades(swaps)'),['buy']);
+  evaluate("flows.early=false;flows.minUsd=1500;");assert.deepEqual(ids('matchingTrades(swaps)'),['sell']);
+});

@@ -57,6 +57,26 @@ export function normalizeChart(payload) {
   if(raw.length&&!points.length)throw issue('The provider returned an invalid chart.',502);
   return points.filter((p,i)=>i===0||p.time!==points[i-1].time);
 }
+// Only public transaction observations; sender addresses are not verified identities.
+export function normalizeTrades(payload,chain,token,poolCreatedAt,now=Date.now()) {
+  if(!Array.isArray(payload?.data))throw issue('Trade data is unavailable.',502);
+  const seen=new Set(),created=Date.parse(poolCreatedAt);
+  const trades=payload.data.slice(0,300).flatMap(item=>{
+    const a=item?.attributes;
+    if(item?.type!=='trade'||!a||typeof item.id!=='string'||!item.id.startsWith(NETWORKS[chain]+'_')||item.id.length>250||seen.has(item.id))return [];
+    let from,to,sender=null;
+    try{from=address(chain,a.from_token_address);to=address(chain,a.to_token_address);}catch{return [];}
+    if(same(chain,from,to)||(!same(chain,from,token)&&!same(chain,to,token)))return [];
+    try{sender=address(chain,a.tx_from_address);}catch{}
+    const time=Date.parse(a.block_timestamp),hash=a.tx_hash;
+    if(!Number.isFinite(time)||time>now+60000||time<now-86400000||typeof hash!=='string'||!(chain==='solana'?/^[1-9A-HJ-NP-Za-km-z]{64,88}$/:/^0x[a-fA-F0-9]{64}$/).test(hash))return [];
+    const side=same(chain,to,token)?'buy':'sell',poolAgeSeconds=Number.isFinite(created)&&time>=created?Math.floor((time-created)/1000):null;
+    seen.add(item.id);
+    return [{id:item.id,tx:hash,sender,side,time:new Date(time).toISOString(),usd:positive(a.volume_in_usd),amount:positive(a[side==='buy'?'to_token_amount':'from_token_amount']),poolAgeSeconds,earlyPoolBuy:side==='buy'&&poolAgeSeconds!==null&&poolAgeSeconds<=600}];
+  }).sort((a,b)=>Date.parse(b.time)-Date.parse(a.time));
+  if(payload.data.length&&!trades.length)throw issue('No valid matching trade observations were returned.',502);
+  return {trades,coverage:{limit:300,received:Math.min(payload.data.length,300),accepted:trades.length,oldest:trades.at(-1)?.time??null,newest:trades[0]?.time??null,complete:false}};
+}
 async function limitedJson(response) {
   const reader=response.body?.getReader();if(!reader)throw issue('Empty provider response.',502);
   const chunks=[];let size=0;
@@ -116,13 +136,18 @@ export async function market(request,env) {
     }else path='/networks/'+network+'/'+(mode==='new'?'new_pools':'trending_pools')+'?include=base_token,quote_token,dex';
     return cached(env,path,path,p=>({chain,mode,pools:normalizePools(p,chain)}));
   }
-  if(url.pathname==='/api/market/chart'){
+  if(url.pathname==='/api/market/chart'||url.pathname==='/api/market/trades'){
     const pool=address(chain,q.get('pool')),token=address(chain,q.get('contract'));
     const period=q.get('period')||'5m';
     if(!['5m','1h'].includes(period))throw issue('Unknown chart period.');
     const poolPath='/networks/'+network+'/pools/'+pool+'?include=base_token,quote_token,dex';
     const details=await cached(env,poolPath+':'+token,poolPath,p=>({pools:normalizePools({...p,data:Array.isArray(p.data)?p.data:[p.data]},chain,token)}));
     if(!details.pools.length||!same(chain,details.pools[0].pool,pool))throw issue('The token does not belong to this pool.',400);
+    if(url.pathname==='/api/market/trades'){
+      const path='/networks/'+network+'/pools/'+pool+'/trades';
+      const result=await cached(env,path+':'+token,path,p=>({chain,pool,contract:token,...normalizeTrades(p,chain,token,details.pools[0].poolCreatedAt)}));
+      return {...result,poolDetails:details.pools[0],detailsFetchedAt:details.fetchedAt,detailsStatus:details.status};
+    }
     const path='/networks/'+network+'/pools/'+pool+'/ohlcv/'+(period==='5m'?'minute':'hour')+'?aggregate='+(period==='5m'?'5':'1')+'&limit=72&currency=usd&token='+token;
     return cached(env,path,path,p=>({chain,pool,contract:token,period,poolDetails:details.pools[0],detailsFetchedAt:details.fetchedAt,detailsStatus:details.status,candles:normalizeChart(p)}));
   }

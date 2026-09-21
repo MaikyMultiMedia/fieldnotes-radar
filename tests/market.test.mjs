@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {DatabaseSync} from 'node:sqlite';
-import {address,number,normalizePools,normalizeChart,market} from '../server/market.mjs';
+import {address,number,normalizePools,normalizeChart,normalizeTrades,market} from '../server/market.mjs';
 const base='So11111111111111111111111111111111111111112',quote='EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',pool='Bd4wKg3xEBKJ4Xrw8skXMmJ4W65gk3x8yd7AovuBJisZ';
 function fixture(){return {data:[{id:'solana_'+pool,type:'pool',attributes:{address:pool,name:'TEST / USD',base_token_price_usd:'0.00012345',quote_token_price_usd:'1',price_change_percentage:{m5:'0',h24:'-3.5'},reserve_in_usd:'0',volume_usd:{h24:'1234'},market_cap_usd:null,fdv_usd:'12345',transactions:{h24:{buys:0,sells:12}},pool_created_at:'2026-01-01T00:00:00Z',wallets:['private-value']},relationships:{base_token:{data:{id:'solana_'+base}},quote_token:{data:{id:'solana_'+quote}},dex:{data:{id:'test-dex'}}}}],included:[{id:'solana_'+base,type:'token',attributes:{address:base,name:'Test',symbol:'TEST'}},{id:'solana_'+quote,type:'token',attributes:{address:quote,name:'USD',symbol:'USD'}},{id:'test-dex',type:'dex',attributes:{name:'Test DEX'}}],privateKey:'private-value'};}
 function database(){
@@ -74,4 +74,24 @@ test('chart requests use the selected exact token and candle interval',async t=>
   const result=await market(request('?chain=solana&pool='+pool+'&contract='+quote+'&period=1h','/api/market/chart'),env);
   assert.equal(result.contract,quote);assert.equal(result.poolDetails.price,1);assert.equal(result.candles.length,1);
   assert.ok(urls[1].endsWith('/ohlcv/hour?aggregate=1&limit=72&currency=usd&token='+quote));
+});
+
+// All transaction values below are deliberately synthetic.
+function tradeFixture(at,overrides={},id='solana_synthetic_swap_1'){return {id,type:'trade',attributes:{tx_hash:'2'.repeat(88),tx_from_address:'3'.repeat(32),from_token_address:quote,to_token_address:base,from_token_amount:'0',to_token_amount:'5',volume_in_usd:'1000',block_timestamp:new Date(at).toISOString(),kind:'sell',...overrides}};}
+test('swap side follows exact token transfers, with bounded time and event identity',()=>{
+  const now=Date.now(),created=new Date(now-600000).toISOString(),first=tradeFixture(now-300000),second=tradeFixture(now-200000,{volume_in_usd:null},'solana_synthetic_swap_2');
+  const data=normalizeTrades({data:[first,first,second,tradeFixture(now+900000),tradeFixture(now-86500000)]},'solana',base,created,now);
+  assert.equal(data.trades.length,2);assert.equal(data.trades[1].side,'buy');assert.equal(data.trades[1].earlyPoolBuy,true);assert.equal(data.trades[0].usd,null);assert.equal(data.coverage.complete,false);
+  // Separate swaps within the same transaction must both survive; quote-side reverses direction.
+  const reverse=normalizeTrades({data:[first,second]},'solana',quote,created,now);assert.equal(reverse.trades.length,2);assert.ok(reverse.trades.every(x=>x.side==='sell'&&!x.earlyPoolBuy));
+  const unknown=normalizeTrades({data:[tradeFixture(now-100000,{volume_in_usd:'0',tx_from_address:'bad'})]},'solana',base,null,now).trades[0];assert.equal(unknown.usd,0);assert.equal(unknown.sender,null);assert.equal(unknown.earlyPoolBuy,false);
+  assert.throws(()=>normalizeTrades({data:[tradeFixture(now-100000)]},'solana','4'.repeat(32),created,now));
+  const after=normalizeTrades({data:[tradeFixture(now-100000)]},'solana',base,new Date(now-800000).toISOString(),now).trades[0];assert.equal(after.earlyPoolBuy,false);
+});
+test('trade endpoint validates token and pool before fetching and shares the provider cache',async t=>{
+  const {db,env}=database();t.after(()=>db.close());let calls=0;
+  t.mock.method(globalThis,'fetch',async url=>{calls++;if(String(url).endsWith('/trades'))return json({data:[tradeFixture(Date.now()-1000)]});const f=fixture();return json({...f,data:f.data[0]});});
+  const q='?chain=solana&pool='+pool+'&contract='+base;
+  const one=await market(request(q,'/api/market/trades'),env);assert.equal(one.trades[0].side,'buy');assert.equal(one.poolDetails.contract,base);assert.equal(calls,2);
+  const two=await market(request(q,'/api/market/trades'),env);assert.equal(calls,2);assert.equal(two.fetchedAt,one.fetchedAt);
 });

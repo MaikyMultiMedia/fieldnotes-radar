@@ -22,3 +22,9 @@ export const marketCache = sqliteTable('market_cache', {
 export const marketBudget = sqliteTable('market_budget', {
   id: text('id').primaryKey(), calls: integer('calls').notNull(), windowStart: integer('window_start').notNull(), blockedUntil: integer('blocked_until').notNull(),
 });
+
+export const wallets = sqliteTable('wallets', {
+  id: text('id').primaryKey(), chain: text('chain').notNull(), address: text('address').notNull(),
+  label: text('label').notNull(), author: text('author').notNull(), updated: integer('updated').notNull(),
+  revision: integer('revision').notNull().default(1),
+}, t => [index('wallets_updated_idx').on(t.updated)]);
