@@ -46,3 +46,28 @@ test('large-trade filters preserve unknowns and exact-chain follows',()=>{
   evaluate("flows.side='all';flows.early=true;");assert.deepEqual(ids('matchingTrades(swaps)'),['buy']);
   evaluate("flows.early=false;flows.minUsd=1500;");assert.deepEqual(ids('matchingTrades(swaps)'),['sell']);
 });
+
+test('loaded token reports preserve exact identity and reject flagged, incomplete or stale shortlisting',()=>{
+ evaluate("tokenReports.set('base:one',{data:{chain:'base',contract:'one',status:'fresh',fetchedAt:fresh.fetchedAt,findings:1,unknown:0}})");
+ assert.equal(evaluate('researchAssessment(pools[0],fresh,now).candidate'),false);
+ assert.equal(evaluate('researchAssessment({...pools[0],contract:"other"},fresh,now).candidate'),true);
+ evaluate("tokenReports.get('base:one').data.findings=0;tokenReports.get('base:one').data.unknown=1;");
+ assert.equal(evaluate('researchAssessment(pools[0],fresh,now).label'),'Token checks incomplete');
+ evaluate("tokenReports.get('base:one').data.unknown=0;");assert.equal(evaluate('researchAssessment(pools[0],fresh,now).candidate'),true);
+ assert.equal(evaluate('researchAssessment(pools[0],{...fresh,fetchedAt:new Date(now+301000).toISOString()},now+301000).label'),'Token checks need refresh');
+ evaluate('tokenReports.clear()');
+});
+test('token-check UI treats missing reports and historical paper evidence explicitly',()=>{
+ assert.match(evaluate('tokenChecksPanel(pools[0])'),/Load free checks/);
+ assert.match(evaluate('paperChecksEvidence({})'),/No fresh token-check report/);
+ assert.equal(evaluate("checksFresh({status:'fresh',fetchedAt:new Date(now+1).toISOString()},now)"),false);
+ assert.equal(evaluate("checkValue({value:null})"),'Unknown');
+ assert.equal(evaluate("checkValue({value:false})"),'Not reported');
+});
+
+test('shared report summaries apply across browser reloads and distinguish other contracts',()=>{
+ evaluate("state={tokenCheckSummaries:[{chain:'base',contract:'one',status:'fresh',fetchedAt:fresh.fetchedAt,findings:1,unknown:0}]}");
+ assert.equal(evaluate('researchAssessment(pools[0],fresh,now).candidate'),false);
+ assert.equal(evaluate('researchAssessment({...pools[0],contract:"other"},fresh,now).candidate'),true);
+ evaluate('state=null');
+});

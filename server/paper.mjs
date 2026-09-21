@@ -1,4 +1,5 @@
 import {address,number,market} from './market.mjs';
+import {savedChecks} from './token-checks.mjs';
 const fail=(message,status=400)=>Object.assign(new Error(message),{status});
 const finite=n=>typeof n==='number'&&Number.isFinite(n);
 const iso=at=>new Date(at).toISOString();
@@ -94,6 +95,7 @@ export async function paper(request,env,user,input=null){
     if(count.total>=200||count.active>=20)throw fail('Paper journal limit reached: 200 total trials and 20 active. Close or cancel active trials first.');
     const t={id:input.id,chain,contract,pool,tag,thesis,reflection:'',assumptions:a,createdAt:now,eligibleAt:now+a.delaySeconds*1000,deadlineAt:now+(a.delaySeconds+300)*1000,author:user,status:'waiting',entry:null,lastMark:null,exit:null,marks:[],observations:0,highestObserved:null,lowestObserved:null,lastCheck:null};
     const q=await quote(request,env,t),problem=quoteProblem(q,t,Date.now());if(problem)throw fail(problem,422);
+    t.tokenChecks=await savedChecks(env,chain,contract,Date.now());
     t.symbol=q.poolDetails.symbol;t.name=q.poolDetails.name;t.seed={price:q.poolDetails.price,liquidity:q.poolDetails.liquidity,marketCap:q.poolDetails.marketCap,volume24h:q.poolDetails.volume24h,change5m:q.poolDetails.change5m,fetchedAt:q.fetchedAt,sourceUrl:q.poolDetails.sourceUrl,provider:q.provider};
     const r=await env.DB.prepare('INSERT OR IGNORE INTO paper_trials (id,chain,contract,pool,status,author,created,eligible,updated,revision,payload) VALUES (?,?,?,?,?,?,?,?,?,1,?)').bind(t.id,chain,contract,pool,'waiting',user,now,t.eligibleAt,now,JSON.stringify(t)).run();
     if(!r.meta.changes)throw fail('The trial was already created. Refresh the journal.',409);
