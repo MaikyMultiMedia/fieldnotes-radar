@@ -17,3 +17,5 @@ fs.copyFileSync('server/intelligence.mjs','dist/server/intelligence.mjs');
 fs.copyFileSync('server/paper.mjs','dist/server/paper.mjs');
 
 fs.copyFileSync('server/token-checks.mjs','dist/server/token-checks.mjs');
+
+fs.copyFileSync('server/buy-alerts.mjs','dist/server/buy-alerts.mjs');

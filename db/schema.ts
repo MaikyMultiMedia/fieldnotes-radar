@@ -34,3 +34,11 @@ export const paperTrials = sqliteTable('paper_trials', {
   status: text('status').notNull(), author: text('author').notNull(), created: integer('created').notNull(), eligible: integer('eligible').notNull(), updated: integer('updated').notNull(),
   revision: integer('revision').notNull().default(1), payload: text('payload').notNull(),
 }, t => [index('paper_trials_created_idx').on(t.created),index('paper_trials_status_eligible_idx').on(t.status,t.eligible)]);
+
+export const buyAlertRules = sqliteTable('buy_alert_rules', {
+  id: text('id').primaryKey(), payload: text('payload').notNull(), updated: integer('updated').notNull(),
+  revision: integer('revision').notNull().default(1), checked: integer('checked').notNull().default(0), scan: text('scan'),
+});
+export const buyAlerts = sqliteTable('buy_alerts', {
+  id: text('id').primaryKey(), detected: integer('detected').notNull(), seen: integer('seen').notNull().default(0), payload: text('payload').notNull(),
+}, t => [index('buy_alerts_detected_idx').on(t.detected)]);
