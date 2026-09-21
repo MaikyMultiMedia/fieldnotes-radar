@@ -25,7 +25,7 @@ test('password validation and scenario boundaries',async()=>{
   assert.throws(()=>scenario(NaN,5));assert.throws(()=>scenario(5,-101));
 });
 test('server enforces authentication, origin, sharing, revisions and logout',async()=>{
-  for(const path of ['/api/workspace','/api/market','/api/market/chart'])assert.equal((await worker.fetch(req(path),env)).status,401);
+  for(const path of ['/api/workspace','/api/market','/api/market/chart','/api/market/trades','/api/intelligence/leaders','/api/wallets'])assert.equal((await worker.fetch(req(path),env)).status,401);
   assert.equal((await worker.fetch(req('/.env'),env)).status,404);
   assert.equal((await worker.fetch(req('/api/login','POST',{email:'maikymultimedia@gmail.com',password:'test-password'},'','https://evil.test'),env)).status,403);
   assert.equal((await worker.fetch(req('/api/login','POST',{email:'stranger@gmail.com',password:'test-password'}),env)).status,401);
@@ -58,13 +58,31 @@ test('source code and static assets expose no actual credential',()=>{
   assert.match(fs.readFileSync('server/worker.mjs','utf8'),/INSERT INTO login_throttle/);
 });
 test('GitHub release switches atomically only after all hashes verify',async()=>{
-  const commit='a'.repeat(40),files={'index.html':'<html>Verified release <script src="/app.js"></script></html>','app.js':'/* verified */','style.css':'body{}','favicon.svg':'<svg/>'};
+  const commit='a'.repeat(40),files={'index.html':'<html>Verified release <script src="/app.js"></script></html>','app.js':'/* verified */','style.css':'body{}','favicon.svg':'<svg/>','charts.js':'/* chart vendor */','NOTICE.txt':'Apache 2.0 notice'};
   const assets=Object.fromEntries(Object.entries(files).map(([k,v])=>[k,createHash('sha256').update(v).digest('hex')]));
-  globalThis.fetch=async url=>new Response(String(url).endsWith('workspace-release.json')?JSON.stringify({apiVersion:2,commit,assets}):files[String(url).split('/').pop()]);
+  globalThis.fetch=async url=>new Response(String(url).endsWith('workspace-release.json')?JSON.stringify({apiVersion:3,commit,assets}):files[String(url).split('/').pop()]);
   const good=(await import('../dist/server/index.js?good-release')).default;
   const response=await good.fetch(req('/'),env);assert.equal(response.headers.get('X-Fieldnotes-Revision'),commit);assert.match(await response.text(),/Verified release/);
   const bad=(await import('../dist/server/index.js?bad-release')).default;
-  globalThis.fetch=async url=>new Response(String(url).endsWith('workspace-release.json')?JSON.stringify({apiVersion:2,commit,assets}):'tampered');
+  globalThis.fetch=async url=>new Response(String(url).endsWith('workspace-release.json')?JSON.stringify({apiVersion:3,commit,assets}):'tampered');
   const fallback=await bad.fetch(req('/'),env);assert.notEqual(fallback.headers.get('X-Fieldnotes-Revision'),commit);assert.doesNotMatch(await fallback.text(),/tampered/);
   assert.equal((await good.fetch(req('/app.js?v='+ 'b'.repeat(40)),env)).status,409);
+});
+
+test('wallet follows are shared, canonical, revision-safe and origin-protected',async()=>{
+  db.prepare('DELETE FROM login_throttle').run();
+  const sign=async email=>(await worker.fetch(req('/api/login','POST',{email,password:'test-password'}),env)).headers.get('set-cookie').split(';')[0];
+  const a=await sign('maikymultimedia@gmail.com'),b=await sign('alexanderpinedo94@gmail.com');
+  const data={chain:'base',address:'0x'+'A'.repeat(40),label:'Synthetic QA wallet'};
+  assert.equal((await worker.fetch(req('/api/wallets','POST',data,a,'https://evil.test'),env)).status,403);
+  assert.equal((await worker.fetch(req('/api/wallets','POST',{...data,address:'bad'},a),env)).status,400);
+  assert.equal((await worker.fetch(req('/api/wallets','POST',data,a),env)).status,200);
+  assert.equal((await worker.fetch(req('/api/wallets','POST',data,b),env)).status,409);
+  const ws=await(await worker.fetch(req('/api/workspace','GET',null,b),env)).json(),wallet=ws.wallets[0];
+  assert.equal(wallet.address,data.address.toLowerCase());
+  assert.equal((await worker.fetch(req('/api/wallets','POST',{...data,label:'Updated label',revision:1},b),env)).status,200);
+  assert.equal((await worker.fetch(req('/api/wallets/'+wallet.id,'DELETE',{revision:1},a),env)).status,409);
+  assert.equal((await worker.fetch(req('/api/wallets/'+wallet.id,'DELETE',{revision:2},a),env)).status,200);
+  const next=await(await worker.fetch(req('/api/workspace','GET',null,b),env)).json();assert.equal(next.wallets.length,0);
+  assert.ok(next.activity.some(x=>x.action==='followed wallet'));assert.ok(next.activity.some(x=>x.action==='unfollowed wallet'));
 });

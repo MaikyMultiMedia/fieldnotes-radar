@@ -15,6 +15,13 @@
       "when": 1789947959284,
       "tag": "0001_high_vision",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1789970621699,
+      "tag": "0002_flaky_silverclaw",
+      "breakpoints": true
     }
   ]
 }

@@ -1,11 +1,13 @@
 import { embedded, sourceCommit } from './embedded.mjs';
+import { leaderboard } from './intelligence.mjs';
+import { address } from './market.mjs';
 import { market } from './market.mjs';
 
 const USERS = new Set(['maikymultimedia@gmail.com', 'alexanderpinedo94@gmail.com']);
 const enc = new TextEncoder();
 const cookieName = '__Host-fieldnotes';
 const base = 'https://maikymultimedia.github.io/fieldnotes-radar';
-const files = { '/': ['index.html', 'text/html'], '/app.js': ['app.js', 'text/javascript'], '/style.css': ['style.css', 'text/css'], '/favicon.svg': ['favicon.svg', 'image/svg+xml'] };
+const files = { '/': ['index.html', 'text/html'], '/app.js': ['app.js', 'text/javascript'], '/charts.js': ['charts.js', 'text/javascript'], '/NOTICE.txt': ['NOTICE.txt', 'text/plain'], '/style.css': ['style.css', 'text/css'], '/favicon.svg': ['favicon.svg', 'image/svg+xml'] };
 const hex = bytes => [...new Uint8Array(bytes)].map(b => b.toString(16).padStart(2,'0')).join('');
 const hash = async value => hex(await crypto.subtle.digest('SHA-256', enc.encode(value)));
 const now = () => Math.floor(Date.now()/1000);
@@ -74,7 +76,7 @@ async function loadRelease() {
     const r=await fetch(base+'/workspace-release.json', {signal:AbortSignal.timeout(3500),cache:'no-store'});
     if(!r.ok) throw Error('Release unavailable');
     const data=await r.json();
-    if(data.apiVersion!==2||!/^([a-f0-9]{40})$/.test(data.commit)||!data.assets) throw Error('Incompatible release');
+    if(data.apiVersion!==3||!/^([a-f0-9]{40})$/.test(data.commit)||!data.assets) throw Error('Incompatible release');
     if(Object.values(files).some(([f])=>!/^[a-f0-9]{64}$/.test(data.assets[f]||''))) throw Error('Incomplete release');
     let contents=verifiedReleases.get(data.commit);
     if(!contents){
@@ -106,7 +108,7 @@ async function asset(request, path) {
     else if(verifiedReleases.has(requested)){content=verifiedReleases.get(requested)[file];commit=requested;}
     else return new Response('This release is no longer cached. Reload the workspace.',{status:409});
   }
-  if(file==='index.html') content=content.replaceAll('/app.js','/app.js?v='+commit).replaceAll('/style.css','/style.css?v='+commit).replaceAll('/favicon.svg','/favicon.svg?v='+commit);
+  if(file==='index.html') content=content.replaceAll('/app.js','/app.js?v='+commit).replaceAll('/charts.js','/charts.js?v='+commit).replaceAll('/style.css','/style.css?v='+commit).replaceAll('/favicon.svg','/favicon.svg?v='+commit);
   return new Response(content,{headers:{'Content-Type':type+'; charset=utf-8','Cache-Control':'no-store','X-Fieldnotes-Revision':commit}});
 }
 async function handle(request,env) {
@@ -136,16 +138,43 @@ async function handle(request,env) {
   }
   const user=await currentUser(request,env);
   if(!user) return json({error:'Please sign in.'},401);
-  if(request.method==='GET'&&(path==='/api/market'||path==='/api/market/chart')) return json(await market(request,env));
+  if(request.method==='GET'&&(path==='/api/market'||path==='/api/market/chart'||path==='/api/market/trades')) return json(await market(request,env));
+  if(path==='/api/intelligence/leaders'&&request.method==='GET')return json(await leaderboard(request,env));
   if(path==='/api/logout'&&request.method==='POST') {
     const token=request.headers.get('cookie').split(';').map(x=>x.trim()).find(x=>x.startsWith(cookieName+'=')).slice(cookieName.length+1);
     await env.DB.prepare('DELETE FROM sessions WHERE hash = ?').bind(await hash(token)).run();
     return json({ok:true},200,{'Set-Cookie':`${cookieName}=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0`});
   }
   if(path==='/api/workspace'&&request.method==='GET') {
-    const results=await env.DB.batch([env.DB.prepare('SELECT * FROM watchlist ORDER BY updated DESC LIMIT 300'),env.DB.prepare('SELECT * FROM activity ORDER BY at DESC LIMIT 25')]);
+    const results=await env.DB.batch([env.DB.prepare('SELECT * FROM watchlist ORDER BY updated DESC LIMIT 300'),env.DB.prepare('SELECT * FROM activity ORDER BY at DESC LIMIT 25'),env.DB.prepare('SELECT * FROM wallets ORDER BY updated DESC LIMIT 100')]);
     const rev=await release();
-    return json({user,watchlist:results[0].results,activity:results[1].results,release:{commit:rev.commit,mode:rev.mode,backend:sourceCommit},feed:JSON.parse(embedded['feed.json'])});
+    return json({user,watchlist:results[0].results,activity:results[1].results,wallets:results[2].results,release:{commit:rev.commit,mode:rev.mode,backend:sourceCommit},feed:JSON.parse(embedded['feed.json'])});
+  }
+  if(path==='/api/wallets'&&request.method==='POST') {
+    const data=await body(request),chain=data.chain,account=address(chain,data.address),label=String(data.label||'').trim();
+    if(!label||label.length>60)throw fail('Give this public address a label of 1–60 characters.');
+    const id=await hash(chain+':'+account),existing=await env.DB.prepare('SELECT * FROM wallets WHERE id=?').bind(id).first();
+    if(existing){
+      if(data.revision!==existing.revision)throw fail('This wallet changed. Refresh before saving.',409);
+      const result=await env.DB.prepare('UPDATE wallets SET label=?,author=?,updated=?,revision=revision+1 WHERE id=? AND revision=?').bind(label,user,now(),id,data.revision).run();
+      if(!result.meta.changes)throw fail('This wallet changed. Refresh before saving.',409);
+    }else{
+      const count=await env.DB.prepare('SELECT count(*) AS n FROM wallets').first();
+      if(count.n>=100)throw fail('The wallet list is full. Remove an address before adding another.');
+      const result=await env.DB.prepare('INSERT OR IGNORE INTO wallets (id,chain,address,label,author,updated,revision) VALUES (?,?,?,?,?,?,1)').bind(id,chain,account,label,user,now()).run();
+      if(!result.meta.changes)throw fail('Your teammate just added this wallet. Refresh to see it.',409);
+    }
+    await audit(env,user,existing?'renamed wallet':'followed wallet',label);
+    return json({ok:true,id});
+  }
+  if(path.startsWith('/api/wallets/')&&request.method==='DELETE'){
+    const id=path.split('/').pop(),data=await body(request);
+    if(!/^[a-f0-9]{64}$/.test(id))throw fail('Invalid wallet.');
+    const existing=await env.DB.prepare('SELECT * FROM wallets WHERE id=?').bind(id).first();
+    if(!existing)throw fail('This wallet is no longer followed.',404);
+    const result=await env.DB.prepare('DELETE FROM wallets WHERE id=? AND revision=?').bind(id,data.revision).run();
+    if(!result.meta.changes)throw fail('This wallet changed. Refresh before removing it.',409);
+    await audit(env,user,'unfollowed wallet',existing.label);return json({ok:true});
   }
   if(path==='/api/watchlist'&&request.method==='POST') {
     const data=await body(request), t=validateToken(data), id=await hash(t.chain+':'+t.contract);

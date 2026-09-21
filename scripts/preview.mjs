@@ -14,7 +14,7 @@ for(const name of fs.readdirSync('drizzle').filter(n=>n.endsWith('.sql')).sort()
   }
 }
 function prepared(sql,params=[]){return{bind(...values){return prepared(sql,values);},async first(){return db.prepare(sql).get(...params)||null;},async run(){if(/RETURNING/i.test(sql)){const rows=db.prepare(sql).all(...params);return{results:rows,meta:{changes:rows.length}};}if(/^SELECT/i.test(sql))return{results:db.prepare(sql).all(...params),meta:{changes:0}};const r=db.prepare(sql).run(...params);return{results:[],meta:{changes:Number(r.changes)}};}};}
-const env={DB:{prepare:prepared,async batch(list){db.exec('BEGIN');try{const results=[];for(const p of list)results.push(await p.run());db.exec('COMMIT');return results;}catch(e){db.exec('ROLLBACK');throw e;}}},ACCOUNT_CREDENTIALS:fs.readFileSync('.local/accounts.json','utf8')};
+const env={BIRDEYE_API_KEY:process.env.BIRDEYE_API_KEY,DB:{prepare:prepared,async batch(list){db.exec('BEGIN');try{const results=[];for(const p of list)results.push(await p.run());db.exec('COMMIT');return results;}catch(e){db.exec('ROLLBACK');throw e;}}},ACCOUNT_CREDENTIALS:fs.readFileSync('.local/accounts.json','utf8')};
 http.createServer(async(req,res)=>{
   try{const chunks=[];for await(const c of req)chunks.push(c);const raw=Buffer.concat(chunks);
   const response=await worker.fetch(new Request('http://localhost:8891'+req.url,{method:req.method,headers:req.headers,body:['GET','HEAD'].includes(req.method)?undefined:raw}),env);
