@@ -47,7 +47,7 @@ export async function walletResearch(request,env){
     try{
       await reserve(env,now);
       const auth=new URLSearchParams({timestamp:String(Math.floor(Date.now()/1000)),client_id:crypto.randomUUID()});
-      const response=await fetch(ROOT+'/v1/user/wallet_profits?'+auth,{method:'POST',headers:{'X-APIKEY':env.GMGN_API_KEY,'Content-Type':'application/json'},body:JSON.stringify({chain:NETWORKS[chain],period:WINDOWS[window],wallet_addresses:[wallet]}),signal:AbortSignal.timeout(10000)});
+      const response=await fetch(ROOT+'/v1/user/wallet_profits?'+auth,{method:'POST',headers:{'X-APIKEY':env.GMGN_API_KEY,'Content-Type':'application/json'},body:JSON.stringify({chain:NETWORKS[chain],period:WINDOWS[window],wallet_addresses:[wallet]}),redirect:'error',signal:AbortSignal.timeout(10000)});
       if([401,403].includes(response.status))throw fail('GMGN access needs attention. Check the connected API key and read-only access.',503);
       let payload;
       if(response.status===429){try{payload=await readJson(response);}catch{payload={};}}

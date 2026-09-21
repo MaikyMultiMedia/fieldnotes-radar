@@ -38,6 +38,26 @@ test('research shortlist rejects stale, unknown, thin and inactive data',()=>{
  assert.deepEqual(ids("filterMarkets(pools,{...defaultTokenFilters(),shortlist:true},fresh,now)"),['base:a:one','base:d:four']);
 });
 
+test('freshness rejects future or missing receipts and incomplete statuses throughout the shortlist',()=>{
+  for(const data of [{...context.fresh,fetchedAt:new Date(now+1).toISOString()},{...context.fresh,fetchedAt:null},{...context.fresh,fetchedAt:'bad'},{...context.fresh,status:'unknown'},{...context.fresh,status:undefined}]){
+    context.invalidSnapshot=data;
+    assert.equal(evaluate('snapshotIsStale(invalidSnapshot,now)'),true);
+    assert.equal(evaluate('researchAssessment(pools[0],invalidSnapshot,now).candidate'),false);
+    const html=evaluate('freshness(invalidSnapshot,now)');assert.match(html,/Refresh needed/);assert.doesNotMatch(html,/Recent API snapshot|NaN/);
+  }
+  assert.match(evaluate('freshness(fresh,now)'),/Recent API snapshot/);
+});
+
+test('large-buy freshness uses separate pool and trade receipts',()=>{
+  context.tradeSnapshot={...context.fresh,detailsStatus:'fresh',detailsFetchedAt:context.fresh.fetchedAt,poolDetails:{symbol:'SYNTHETIC'},chain:'solana',contract:'synthetic',pool:'synthetic-pool',trades:[{time:context.fresh.fetchedAt,id:'synthetic'}]};
+  evaluate('flows.snapshots=[tradeSnapshot]');assert.equal(evaluate('observedTrades(now)[0].stale'),false);
+  for(const change of [{detailsStatus:'stale'},{detailsFetchedAt:new Date(now-120001).toISOString()},{detailsFetchedAt:new Date(now+1).toISOString()},{detailsFetchedAt:null},{fetchedAt:'bad'},{status:'stale'}]){
+    context.snapshotChange=change;evaluate('flows.snapshots=[{...tradeSnapshot,...snapshotChange}]');assert.equal(evaluate('observedTrades(now)[0].stale'),true);
+  }
+  assert.equal(evaluate('observedTrades(now)[0].detailsFetchedAt'),context.fresh.fetchedAt);
+  evaluate('flows.snapshots=[]');
+});
+
 test('large-trade filters preserve unknowns and exact-chain follows',()=>{
   context.swaps=[{id:'buy',side:'buy',usd:1000,earlyPoolBuy:true,sender:'wallet',chain:'base'},{id:'sell',side:'sell',usd:2000,earlyPoolBuy:false,sender:'wallet',chain:'base'},{id:'unknown',side:'buy',usd:null,earlyPoolBuy:true,sender:'wallet',chain:'base'},{id:'zero',side:'buy',usd:0,earlyPoolBuy:false,sender:'wallet',chain:'solana'}];
   evaluate("state={wallets:[{address:'wallet',chain:'base'}]};flows.minUsd=0;flows.side='buy';flows.early=false;flows.followed=false;");

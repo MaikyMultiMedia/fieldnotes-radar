@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {DatabaseSync} from 'node:sqlite';
-import {address,number,normalizePools,normalizeChart,normalizeTrades,market} from '../server/market.mjs';
+import {address,number,normalizePools,normalizeChart,normalizeTrades,market,retryDelay} from '../server/market.mjs';
 const base='So11111111111111111111111111111111111111112',quote='EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',pool='Bd4wKg3xEBKJ4Xrw8skXMmJ4W65gk3x8yd7AovuBJisZ';
 function fixture(){return {data:[{id:'solana_'+pool,type:'pool',attributes:{address:pool,name:'TEST / USD',base_token_price_usd:'0.00012345',quote_token_price_usd:'1',price_change_percentage:{m5:'0',h24:'-3.5'},reserve_in_usd:'0',volume_usd:{h24:'1234'},market_cap_usd:null,fdv_usd:'12345',transactions:{h24:{buys:0,sells:12}},pool_created_at:'2026-01-01T00:00:00Z',wallets:['private-value']},relationships:{base_token:{data:{id:'solana_'+base}},quote_token:{data:{id:'solana_'+quote}},dex:{data:{id:'test-dex'}}}}],included:[{id:'solana_'+base,type:'token',attributes:{address:base,name:'Test',symbol:'TEST'}},{id:'solana_'+quote,type:'token',attributes:{address:quote,name:'USD',symbol:'USD'}},{id:'test-dex',type:'dex',attributes:{name:'Test DEX'}}],privateKey:'private-value'};}
 function database(){
@@ -94,4 +94,45 @@ test('trade endpoint validates token and pool before fetching and shares the pro
   const q='?chain=solana&pool='+pool+'&contract='+base;
   const one=await market(request(q,'/api/market/trades'),env);assert.equal(one.trades[0].side,'buy');assert.equal(one.poolDetails.contract,base);assert.equal(calls,2);
   const two=await market(request(q,'/api/market/trades'),env);assert.equal(calls,2);assert.equal(two.fetchedAt,one.fetchedAt);
+});
+
+test('future cache receipts cannot become fresh or outage fallback, and reads reject redirects',async t=>{
+  const {db,env}=database();t.after(()=>db.close());let calls=0;
+  t.mock.method(globalThis,'fetch',async(url,options)=>{calls++;assert.equal(options.redirect,'error');return json(fixture());});
+  await market(request(),env);
+  const future=Math.floor(Date.now()/1000)+3600;
+  db.prepare('UPDATE market_cache SET fetched=?').run(future);
+  await market(request(),env);assert.equal(calls,2);
+  db.prepare('UPDATE market_cache SET fetched=?').run(future);
+  t.mock.method(globalThis,'fetch',async()=>{throw Error('offline');});
+  await assert.rejects(market(request(),env),{status:502});
+});
+
+test('chart cache keeps the latest pool receipt separate from older candles and failed pool refreshes',async t=>{
+  const {db,env}=database();t.after(()=>db.close());let now=1800000000000,poolCalls=0,chartCalls=0,failPool=false;
+  t.mock.method(Date,'now',()=>now);
+  t.mock.method(globalThis,'fetch',async url=>{
+    if(String(url).includes('/ohlcv/')){chartCalls++;return json({data:{attributes:{ohlcv_list:[[100,1,2,1,2,0]]}}});}
+    poolCalls++;if(failPool)throw Error('offline');const f=fixture();f.data[0].attributes.base_token_price_usd=String(poolCalls);return json({...f,data:f.data[0]});
+  });
+  const q='?chain=solana&pool='+pool+'&contract='+base;
+  await market(request(q,'/api/market/pool'),env);
+  now+=50000;const first=await market(request(q,'/api/market/chart'),env);
+  now+=11000;const second=await market(request(q,'/api/market/chart'),env);
+  assert.equal(chartCalls,1);assert.equal(poolCalls,2);assert.equal(second.poolDetails.price,2);
+  assert.equal(second.fetchedAt,first.fetchedAt);assert.notEqual(second.detailsFetchedAt,first.detailsFetchedAt);
+  now+=61000;failPool=true;const mixed=await market(request(q,'/api/market/chart'),env);
+  assert.equal(mixed.status,'fresh');assert.equal(mixed.detailsStatus,'stale');assert.equal(mixed.detailsFetchedAt,second.detailsFetchedAt);
+  now+=1000;failPool=false;const recovered=await market(request(q,'/api/market/chart'),env);
+  assert.equal(recovered.detailsStatus,'fresh');assert.equal(recovered.poolDetails.price,4);assert.equal(recovered.fetchedAt,mixed.fetchedAt);assert.equal(chartCalls,2);
+});
+
+test('provider cooldown parses both Retry-After formats and bounds invalid or excessive delays',async t=>{
+  const {db,env}=database();t.after(()=>db.close());const now=1800000000;let clock=now*1000,calls=0;
+  t.mock.method(Date,'now',()=>clock);
+  for(const [value,expected] of [['120',120],[new Date((now+180)*1000).toUTCString(),180],['999999',3600],['bad',60],[null,60],['0',60]])assert.equal(retryDelay(value,now),expected);
+  t.mock.method(globalThis,'fetch',async()=>{calls++;return new Response('limited',{status:429,headers:{'retry-after':new Date((now+180)*1000).toUTCString()}});});
+  await assert.rejects(market(request(),env),{status:429});clock+=120000;
+  await assert.rejects(market(request(),env),{status:429});assert.equal(calls,1);
+  assert.equal(db.prepare("SELECT blocked_until FROM market_budget WHERE id='provider'").get().blocked_until,now+180);
 });
